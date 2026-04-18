@@ -511,6 +511,53 @@
     display: flex; align-items: flex-start; gap: 6px;
   }
   .example-row span { flex: 1; }
+
+  /* ── 例句單字點擊 ── */
+  .w-chip {
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 0 2px;
+    transition: background 0.15s, color 0.15s;
+    display: inline;
+  }
+  .w-chip:active { background: rgba(160,130,255,0.25); color: #d0b0ff; }
+
+  /* ── 單字查詢彈窗 ── */
+  #wordModal {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  #wordModal.open { opacity: 1; pointer-events: all; }
+  #wordModal .wm-panel {
+    background: #1e1e32;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%; max-width: 680px;
+    max-height: 80vh; overflow-y: auto;
+    transform: translateY(40px); transition: transform 0.25s;
+  }
+  #wordModal.open .wm-panel { transform: translateY(0); }
+  .wm-word {
+    font-size: 26px; font-weight: 700; color: #f0e8ff;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  .wm-reading { font-size: 13px; color: #888; margin-bottom: 12px; }
+  .wm-meaning { font-size: 18px; color: #c8e8ff; font-weight: 600; margin-bottom: 8px; }
+  .wm-pos { display:inline-block; font-size:11px; padding:2px 8px; border-radius:8px; margin-bottom:10px; }
+  .wm-section-title { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin: 14px 0 6px; }
+  .wm-example { font-size: 13px; color: #a0a0c0; line-height: 1.6; padding: 8px 12px; background: #16162a; border-radius: 8px; }
+  .wm-example-zh { font-size: 12px; color: #666; margin-top: 3px; }
+  .wm-phrases { display: flex; flex-direction: column; gap: 6px; }
+  .wm-phrase-row { font-size: 13px; color: #c0b080; padding: 6px 10px; background: #1a1a2a; border-radius: 8px; }
+  .wm-phrase-meaning { color: #888; font-size: 12px; }
+  .wm-not-found { font-size: 13px; color: #888; padding: 12px; background: #16162a; border-radius: 8px; }
+  .wm-close { width: 100%; margin-top: 16px; padding: 12px; border: none; border-radius: 12px; background: #2e2e4a; color: #a0a0c0; font-size: 15px; cursor: pointer; }
+  .wm-add-btn { display:inline-block; margin-top:10px; padding:8px 16px; background:#3a2e5a; color:#c0a0ff; border:none; border-radius:10px; font-size:13px; cursor:pointer; }
+
+  /* ── 時事分頁 ── */
+  .news-view { padding: 16px 16px 90px; max-width: 680px; margin: 0 auto; }
 </style>
 </head>
 <body>
@@ -564,6 +611,19 @@
   </div>
 </div>
 
+<!-- 單字查詢彈窗 -->
+<div id="wordModal">
+  <div class="wm-panel">
+    <div id="wmContent"></div>
+    <button class="wm-close" onclick="closeWordModal()">關閉</button>
+  </div>
+</div>
+
+<!-- 時事視圖 -->
+<div id="newsView" style="display:none">
+  <div class="news-view" id="newsContainer"></div>
+</div>
+
 <!-- 底部導航 -->
 <nav class="bottom-nav">
   <button class="nav-btn active" data-view="cards" onclick="switchView('cards')">
@@ -578,6 +638,10 @@
   <button class="nav-btn" data-view="stats" onclick="switchView('stats')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
     統計
+  </button>
+  <button class="nav-btn" data-view="news" onclick="switchView('news')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>
+    時事
   </button>
 </nav>
 
@@ -4714,6 +4778,109 @@ function renderStats() {
 }
 
 // ════════════════════════════════════════════
+// 例句單字點擊查詢
+// ════════════════════════════════════════════
+function chipify(text, lang) {
+  // Split into tokens preserving spaces/punctuation groups
+  return text.replace(/([^\s.,!?¿¡;:()"']+)/g, (word) => {
+    const clean = word.replace(/[.,!?¿¡;:()"']/g,'').toLowerCase();
+    if (!clean) return word;
+    const encoded = word.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const cleanEnc = clean.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    return `<span class="w-chip" onclick="lookupWord('${cleanEnc}','${lang}')">${encoded}</span>`;
+  });
+}
+
+function lookupWord(clean, lang) {
+  const POS_COLORS = {v:'#a07040',n:'#406090',adj:'#507060',adv:'#705090',phrase:'#906060'};
+  const POS_ZH = {v:'動詞',n:'名詞',adj:'形容詞',adv:'副詞',phrase:'片語'};
+
+  // Search WORDS (case-insensitive, also check conjugation forms)
+  // lang='ALL' means search across all languages (used by news chips)
+  const found = WORDS.find(w => {
+    if (w.verb.toLowerCase() === clean) return true;
+    if (lang !== 'ALL' && w.lang !== lang) return false;
+    return Object.values(w.conj||{}).flat().some(f => f && f.toLowerCase()===clean);
+  });
+
+  let html = '';
+  if (found) {
+    const pos = found.pos||'v';
+    const color = POS_COLORS[pos]||'#555';
+    const posZh = POS_ZH[pos]||pos;
+    html = `
+      <div class="wm-word">
+        ${found.verb}
+        <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(found.verb)},${JSON.stringify(found.lang)})" style="flex-shrink:0">${SPEAK_ICON(22,'#a090d0')}</button>
+      </div>
+      <div class="wm-reading">${found.lang} · ${found.level}</div>
+      <span class="wm-pos" style="background:${color}22;color:${color}">${posZh}</span>
+      ${found.region ? `<span class="wm-pos" style="background:#3a3a2e22;color:#c0c070;margin-left:4px">${found.region==='LAT'?'拉美':'西班牙'}</span>` : ''}
+      <div class="wm-meaning">${found.meaning}</div>
+      ${found.inflect ? `<div style="font-size:12px;color:#888;margin-bottom:8px">${found.inflect}</div>` : ''}
+      <div class="wm-section-title">例句</div>
+      <div class="wm-example">
+        ${found.example}
+        <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(found.example)},${JSON.stringify(found.lang)})" style="margin-left:4px">${SPEAK_ICON_SM('#666')}</button>
+      </div>
+      ${found.exampleZh ? `<div class="wm-example-zh">${found.exampleZh}</div>` : ''}
+      ${found.phrases && found.phrases.length ? `
+        <div class="wm-section-title">常用片語</div>
+        <div class="wm-phrases">
+          ${found.phrases.map(p=>`
+            <div class="wm-phrase-row">
+              <b>${p.text}</b>
+              <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(p.text)},${JSON.stringify(found.lang)})" style="margin-left:4px">${SPEAK_ICON_SM('#888')}</button>
+              <br><span class="wm-phrase-meaning">${p.meaning}</span>
+            </div>`).join('')}
+        </div>` : ''}`;
+  } else {
+    html = `
+      <div class="wm-word">
+        ${clean}
+        <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(clean)},${JSON.stringify(lang)})" style="flex-shrink:0">${SPEAK_ICON(22,'#a090d0')}</button>
+      </div>
+      <div class="wm-not-found">此單字尚未收錄在單字庫中。<br>點擊發音按鈕可以聆聽讀音。</div>`;
+  }
+  document.getElementById('wmContent').innerHTML = html;
+  document.getElementById('wordModal').classList.add('open');
+}
+
+function closeWordModal() {
+  document.getElementById('wordModal').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('wordModal').addEventListener('click', function(e){
+    if (e.target===this) closeWordModal();
+  });
+});
+
+// ════════════════════════════════════════════
+// 時事專欄
+// ════════════════════════════════════════════
+function renderNewsView() {
+  const container = document.getElementById('newsContainer');
+  container.innerHTML = NEWS.map(n => `
+    <div class="card news-card" style="margin-bottom:16px">
+      <div class="news-header">
+        <span class="pos-tag pos-news">${n.category}</span>
+        <span class="news-date">${n.date}</span>
+      </div>
+      <div class="news-title">${n.title}</div>
+      <div class="news-body">${n.body}</div>
+      ${n.words && n.words.length ? `
+        <div style="margin-top:10px;font-size:11px;color:#666;margin-bottom:4px">▸ 相關單字</div>
+        <div class="news-vocab">
+          ${n.words.map(w=>`
+            <div class="news-word-chip" onclick="lookupWord('${w.word.toLowerCase()}','ALL')">
+              <span class="chip-word">${w.word}</span>
+              <span class="chip-meaning"> ${w.meaning}</span>
+            </div>`).join('')}
+        </div>` : ''}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════
 // 渲染卡片
 // ════════════════════════════════════════════
 const SPEAK_ICON = (size=20,color='#aaa') =>
@@ -4737,14 +4904,11 @@ function render() {
     return true;
   });
 
-  // News cards at top if no filter
-  const newsHtml = (activeFilter==="ALL" && activePOS==="ALL" && !q) ? renderNewsCards() : "";
-
-  if (!filtered.length && !newsHtml) { list.innerHTML=`<div class="no-results">找不到符合的單字</div>`; return; }
+  if (!filtered.length) { list.innerHTML=`<div class="no-results">找不到符合的單字</div>`; return; }
 
   const POS_LABELS = {v:'動詞',n:'名詞',adj:'形容詞',adv:'副詞',phrase:'片語'};
 
-  list.innerHTML = newsHtml + filtered.map(w => {
+  list.innerHTML = filtered.map(w => {
     const pos   = w.pos || "v";
     const prog  = data.words[w.verb] || {state:0};
     const sColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
@@ -4781,7 +4945,7 @@ function render() {
         </div>
         <hr class="card-divider">
         <div class="example-row">
-          <span class="card-example" style="flex:1">${w.example}</span>
+          <span class="card-example" style="flex:1">${chipify(w.example,w.lang)}</span>
           <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(w.example)},${JSON.stringify(w.lang)})" title="例句發音" style="flex-shrink:0;margin-top:1px">${SPEAK_ICON_SM('#666')}</button>
         </div>
         ${w.exampleZh ? `<div style="font-size:12px;color:#666;margin-top:2px">${w.exampleZh}</div>` : ''}
@@ -4819,7 +4983,7 @@ function render() {
         </div>` : ''}
       <hr class="card-divider">
       <div class="example-row">
-        <span class="card-example" style="flex:1">${w.example}</span>
+        <span class="card-example" style="flex:1">${chipify(w.example,w.lang)}</span>
         <button class="speak-btn" onclick="speakWord(event,${JSON.stringify(w.example)},${JSON.stringify(w.lang)})" title="例句發音" style="flex-shrink:0;margin-top:1px">${SPEAK_ICON_SM('#666')}</button>
       </div>
       ${w.exampleZh ? `<div style="font-size:12px;color:#666;margin-top:2px">${w.exampleZh}</div>` : ''}
@@ -4894,10 +5058,12 @@ function switchView(view) {
   document.getElementById('cardsView').style.display  = view==='cards'  ? 'block' : 'none';
   document.getElementById('reviewView').style.display = view==='review' ? 'block' : 'none';
   document.getElementById('statsView').style.display  = view==='stats'  ? 'block' : 'none';
+  document.getElementById('newsView').style.display   = view==='news'   ? 'block' : 'none';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view===view));
   document.querySelector('.top-bar').style.display = view==='cards' ? '' : 'none';
   if (view==='review') startReview();
   if (view==='stats')  renderStats();
+  if (view==='news')   renderNewsView();
 }
 
 // ════════════════════════════════════════════

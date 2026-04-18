@@ -526,19 +526,16 @@
   #wordModal {
     position: fixed; inset: 0; z-index: 300;
     background: rgba(0,0,0,0.7);
-    display: flex; align-items: flex-end; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    display: none; align-items: flex-end; justify-content: center;
   }
-  #wordModal.open { opacity: 1; pointer-events: all; }
+  #wordModal.open { display: flex; }
   #wordModal .wm-panel {
     background: #1e1e32;
     border-radius: 20px 20px 0 0;
     padding: 24px 20px 40px;
     width: 100%; max-width: 680px;
     max-height: 80vh; overflow-y: auto;
-    transform: translateY(40px); transition: transform 0.25s;
   }
-  #wordModal.open .wm-panel { transform: translateY(0); }
   .wm-word {
     font-size: 26px; font-weight: 700; color: #f0e8ff;
     display: flex; align-items: center; gap: 10px; margin-bottom: 4px;

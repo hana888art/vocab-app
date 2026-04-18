@@ -5135,8 +5135,15 @@ const EXTRA_WORDS = [
 // 合併到 WORDS
 WORDS.push(...EXTRA_WORDS);
 
-render();
-updateBadge();
+try {
+  render();
+  updateBadge();
+} catch(e) {
+  document.getElementById('cardList').innerHTML =
+    `<div style="color:#f07070;padding:20px;background:#2a1a1a;border-radius:12px;font-family:monospace;font-size:12px">
+      <b>⚠️ 錯誤訊息（請截圖回報）：</b><br>${e.message}<br><br>${e.stack||''}
+    </div>`;
+}
 </script>
 </body>
 </html>

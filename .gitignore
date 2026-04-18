@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+update_log.txt
+.DS_Store
+*.csv
+run_update.sh
+vocab_updater.py
+build_vocab.py

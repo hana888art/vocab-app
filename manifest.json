@@ -1,0 +1,15 @@
+{
+  "name": "動詞變化複習",
+  "short_name": "單字卡",
+  "description": "西文・德文・英文單字學習 App",
+  "start_url": "./vocab.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1c1c2e",
+  "theme_color": "#1c1c2e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

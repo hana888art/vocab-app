@@ -962,11 +962,11 @@ const WORDS = [
     conj: {
       pres: ["gestiono","gestionas","gestiona","gestionamos","gestionáis","gestionan"],
       past: ["gestioné","gestionaste","gestionó","gestionamos","gestionasteis","gestionaron"],
-      imp:  ["-","-","-","-","-","-"],
-      fut:  ["-","-","-","-","-","-"],
+      imp:  ["gestionaba","gestionabas","gestionaba","gestionábamos","gestionabais","gestionaban"],
+      fut:  ["gestionaré","gestionarás","gestionará","gestionaremos","gestionaréis","gestionarán"],
       part: ["gestionado","-","-","-","-","-"],
       subj: ["gestione","gestiones","gestione","gestionemos","gestionéis","gestionen"],
-      subjimp: ["-","-","-","-","-","-"],
+      subjimp: ["gestionara","gestionaras","gestionara","gestionáramos","gestionarais","gestionaran"],
     }
   },
   {
@@ -977,11 +977,11 @@ const WORDS = [
     conj: {
       pres: ["solicito","solicitas","solicita","solicitamos","solicitáis","solicitan"],
       past: ["solicité","solicitaste","solicitó","solicitamos","solicitasteis","solicitaron"],
-      imp:  ["-","-","-","-","-","-"],
-      fut:  ["-","-","-","-","-","-"],
+      imp:  ["solicitaba","solicitabas","solicitaba","solicitábamos","solicitabais","solicitaban"],
+      fut:  ["solicitaré","solicitarás","solicitará","solicitaremos","solicitaréis","solicitarán"],
       part: ["solicitado","-","-","-","-","-"],
       subj: ["solicite","solicites","solicite","solicitemos","solicitéis","soliciten"],
-      subjimp: ["-","-","-","-","-","-"],
+      subjimp: ["solicitara","solicitaras","solicitara","solicitáramos","solicitarais","solicitaran"],
     }
   },
   {
@@ -1118,7 +1118,7 @@ const WORDS = [
     conj: {
       pres: ["achieve","achieve","achieves","achieve","-","achieve"],
       past: ["achieved","achieved","achieved","achieved","-","achieved"],
-      imp:  ["-","-","-","-","-","-"],
+      imp:  ["war","warst","war","waren","wart","waren"],
       fut:  ["-","-","-","-","-","-"],
       part: ["achieved","-","-","-","-","-"],
       subj: ["-","-","-","-","-","-"],
@@ -1781,11 +1781,11 @@ const WORDS = [
     conj: {
       pres: ["mejoro","mejoras","mejora","mejoramos","mejoráis","mejoran"],
       past: ["mejoré","mejoraste","mejoró","mejoramos","mejorasteis","mejoraron"],
-      imp:  ["-","-","-","-","-","-"],
-      fut:  ["-","-","-","-","-","-"],
+      imp:  ["mejoraba","mejorabas","mejoraba","mejorábamos","mejorabais","mejoraban"],
+      fut:  ["mejoraré","mejorarás","mejorará","mejoraremos","mejoraréis","mejorarán"],
       part: ["mejorado","-","-","-","-","-"],
       subj: ["mejore","mejores","mejore","mejoremos","mejoréis","mejoren"],
-      subjimp: ["-","-","-","-","-","-"],
+      subjimp: ["mejorara","mejoraras","mejorara","mejoráramos","mejorarais","mejoraran"],
     }
   },
   {
@@ -1841,11 +1841,11 @@ const WORDS = [
     conj: {
       pres: ["impongo","impones","impone","imponemos","imponéis","imponen"],
       past: ["impuse","impusiste","impuso","impusimos","impusisteis","impusieron"],
-      imp:  ["-","-","-","-","-","-"],
-      fut:  ["-","-","-","-","-","-"],
+      imp:  ["imponía","imponías","imponía","imponíamos","imponíais","imponían"],
+      fut:  ["impondré","impondrás","impondrá","impondremos","impondréis","impondrán"],
       part: ["impuesto","-","-","-","-","-"],
       subj: ["imponga","impongas","imponga","impongamos","impongáis","impongan"],
-      subjimp: ["-","-","-","-","-","-"],
+      subjimp: ["impusiera","impusieras","impusiera","impusiéramos","impusierais","impusieran"],
     }
   },
   {
@@ -5137,6 +5137,7 @@ function renderReviewTop() {
       <button class="review-mode-btn${reviewMode==='flip'?' active':''}" onclick="setReviewMode('flip')">🃏 翻牌</button>
       <button class="review-mode-btn${reviewMode==='choice'?' active':''}" onclick="setReviewMode('choice')">☑️ 選擇題</button>
       <button class="review-mode-btn${reviewMode==='voice'?' active':''}" onclick="setReviewMode('voice')">🎤 語音</button>
+      <button class="review-mode-btn${reviewMode==='roleplay'?' active':''}" onclick="setReviewMode('roleplay')">🎭 情境</button>
     </div>`;
 }
 
@@ -5180,8 +5181,9 @@ function renderReview() {
     return;
   }
 
-  if (reviewMode === 'choice') { renderReviewChoice(); return; }
-  if (reviewMode === 'voice')  { renderReviewVoice();  return; }
+  if (reviewMode === 'choice')   { renderReviewChoice();  return; }
+  if (reviewMode === 'voice')    { renderReviewVoice();   return; }
+  if (reviewMode === 'roleplay') { renderReviewRoleplay(); return; }
 
   const w = reviewQueue[reviewIndex];
   const prog = srsGet(w.verb);
@@ -5360,6 +5362,209 @@ function startVoice(word, lang) {
   };
   _voiceRec.onend = () => { if (btn) btn.classList.remove('listening'); };
   _voiceRec.start();
+}
+
+// ── 情境 Role-play 模式 ──
+const ROLEPLAY_SCENARIOS = {
+  ES: [
+    { id:"rest1", theme:"餐廳接待", icon:"🍽️",
+      setup:"你是高雄某素食餐廳的接待員。一位客人走進來說：",
+      customer:"Hola, quisiera reservar una mesa para dos personas para las siete de la tarde.",
+      hint:"客人想預訂今晚七點兩人桌",
+      target:["reservar","mesa","tarde"],
+      model:"¡Buenas tardes! Por supuesto, una mesa para dos a las siete. ¿Me puede dar su nombre, por favor?",
+      modelZh:"當然！兩位、七點。請問您的姓名是？",
+      tips:["用 por supuesto / claro que sí 表達「當然」","用 ¿Me puede dar…? 禮貌地要求資訊","記得加 por favor 讓語氣更客氣"] },
+    { id:"rest2", theme:"餐廳接待", icon:"🍽️",
+      setup:"一位客人指著菜單問你：",
+      customer:"Perdona, ¿este plato tiene carne? Soy vegetariano.",
+      hint:"客人詢問菜餚是否含肉（他是素食者）",
+      target:["tiene","vegetariano","plato"],
+      model:"No se preocupe, este plato es completamente vegetariano. No lleva ningún tipo de carne.",
+      modelZh:"請放心，這道菜完全是素食的，不含任何肉類。",
+      tips:["No se preocupe = 請放心（正式）","completamente = 完全地，加強語氣","No lleva… = 不含…（比 no tiene 更口語）"] },
+    { id:"rest3", theme:"餐廳接待", icon:"🍽️",
+      setup:"結帳時客人說：",
+      customer:"¿Puedo pagar con tarjeta? ¿Aceptan Visa?",
+      hint:"客人詢問是否可以刷卡（Visa）",
+      target:["pagar","tarjeta","aceptar"],
+      model:"Sí, aceptamos tarjeta de crédito y débito. La máquina está aquí, cuando quiera.",
+      modelZh:"是的，我們接受信用卡和金融卡。機器在這裡，您隨時可以。",
+      tips:["cuando quiera = 您隨時方便（禮貌表達）","La máquina está aquí = 機器在這裡"] },
+    { id:"travel1", theme:"旅遊澳洲", icon:"✈️",
+      setup:"你剛抵達布里斯本機場，詢問工作人員：",
+      customer:"→ 你需要問如何前往市中心",
+      hint:"請用西文問如何搭乘大眾交通前往市中心",
+      target:["llegar","centro","transporte"],
+      model:"Disculpe, ¿cómo puedo llegar al centro de la ciudad en transporte público?",
+      modelZh:"打擾一下，請問我要如何搭大眾交通到市中心？",
+      tips:["Disculpe = 打擾一下（比 perdona 更正式）","¿Cómo puedo…? = 我要怎麼做…？","transporte público = 大眾交通"] },
+    { id:"travel2", theme:"旅遊澳洲", icon:"✈️",
+      setup:"你在布里斯本找房間，詢問房東：",
+      customer:"Do you still have the room available? I'm looking for something near South Bank.",
+      hint:"房東用英文問你，請用西文在心裡整理資訊：房間還在嗎？你想找 South Bank 附近",
+      target:["disponible","buscar","cerca"],
+      model:"Sí, la habitación sigue disponible. Está a diez minutos de South Bank en autobús.",
+      modelZh:"是的，房間還有。搭公車距 South Bank 十分鐘。",
+      tips:["sigue disponible = 仍然有空（sigue + adj）","a diez minutos de = 距…十分鐘","en autobús/metro/tren = 搭公車/地鐵/火車"] },
+    { id:"work1", theme:"工作面試", icon:"💼",
+      setup:"面試官問你：",
+      customer:"¿Por qué quieres trabajar en nuestro restaurante?",
+      hint:"請說出你想在這家餐廳工作的理由",
+      target:["querer","trabajar","experiencia"],
+      model:"Me interesa mucho trabajar aquí porque tengo experiencia en atención al cliente y me apasiona el servicio en restaurantes.",
+      modelZh:"我非常想在這裡工作，因為我有客服經驗，而且我對餐廳服務充滿熱情。",
+      tips:["Me interesa mucho = 我非常感興趣","me apasiona = 讓我充滿熱情（比 me gusta 更強）","nunca olvides mencionar tu experiencia = 別忘提你的經驗"] },
+  ],
+  DE: [
+    { id:"rest1", theme:"餐廳接待", icon:"🍽️",
+      setup:"Du arbeitest als Empfangsperson in einem Restaurant. Ein Gast kommt herein und sagt:",
+      customer:"Guten Abend! Ich hätte gerne einen Tisch für zwei Personen.",
+      hint:"客人想要一張兩人桌（晚上）",
+      target:["reservieren","Tisch","Personen"],
+      model:"Guten Abend! Haben Sie reserviert? Nein? Kein Problem, ich schaue kurz nach... Hier entlang, bitte!",
+      modelZh:"晚上好！請問您有訂位嗎？沒有？沒問題，我看一下……請往這邊走！",
+      tips:["Haben Sie reserviert? = 您有訂位嗎？","Kein Problem = 沒問題（日常常用）","Hier entlang, bitte = 請往這邊（帶位用語）"] },
+    { id:"rest2", theme:"餐廳接待", icon:"🍽️",
+      setup:"Ein Gast fragt dich:",
+      customer:"Entschuldigung, was empfehlen Sie heute?",
+      hint:"客人詢問今日推薦",
+      target:["empfehlen","Tagesgericht","schmecken"],
+      model:"Ich empfehle das Tagesgericht – heute gibt es Gemüsecurry mit Reis. Es schmeckt wirklich gut!",
+      modelZh:"我推薦今日特餐——今天是蔬菜咖哩配飯，真的很好吃！",
+      tips:["Ich empfehle = 我推薦（直接簡單）","Es schmeckt gut/wirklich gut = 很好吃","heute gibt es = 今天有（介紹今日供應）"] },
+    { id:"travel1", theme:"旅遊澳洲", icon:"✈️",
+      setup:"Du bist in Brisbane und fragst jemanden nach dem Weg:",
+      customer:"→ 你要問如何步行到 South Bank",
+      hint:"請用德語問路",
+      target:["kommen","Weg","Minuten"],
+      model:"Entschuldigung, wie komme ich zum South Bank? Kann man zu Fuß gehen?",
+      modelZh:"打擾一下，請問我怎麼走到 South Bank？可以步行嗎？",
+      tips:["Wie komme ich zu…? = 我怎麼去…？（問路標準句）","zu Fuß gehen = 步行","mit dem Bus / mit der Bahn = 搭公車/火車"] },
+    { id:"work1", theme:"工作申請", icon:"💼",
+      setup:"Du rufst ein Restaurant an, um dich nach einer Stelle zu erkundigen:",
+      customer:"→ 請用德語詢問是否有服務生的職缺",
+      hint:"打電話詢問是否有工作機會",
+      target:["Stelle","bewerben","Erfahrung"],
+      model:"Guten Tag, mein Name ist Hana. Ich rufe an, weil ich mich für eine Stelle als Servicekraft interessiere. Haben Sie momentan etwas frei?",
+      modelZh:"你好，我叫 Hana。我打電話是因為我對服務人員的職位感興趣。請問目前有空缺嗎？",
+      tips:["Ich rufe an, weil… = 我打電話是因為…","sich für etwas interessieren = 對某事感興趣","Haben Sie etwas frei? = 您有空缺嗎？"] },
+    { id:"daily1", theme:"日常生活", icon:"🏠",
+      setup:"Du suchst eine Wohnung in Brisbane. Der Vermieter fragt:",
+      customer:"Wie lange möchten Sie bleiben?",
+      hint:"房東問你打算住多久",
+      target:["bleiben","ungefähr","Monat"],
+      model:"Ich plane, ungefähr ein Jahr zu bleiben. Ich bin mit einem Working-Holiday-Visum hier.",
+      modelZh:"我計畫住大約一年。我持打工度假簽證在這裡。",
+      tips:["ungefähr = 大約（重要副詞）","Ich plane zu + Infinitiv = 我計畫要做…","Working-Holiday-Visum = 打工度假簽證"] },
+  ],
+  EN: [
+    { id:"rest1", theme:"Restaurant service", icon:"🍽️",
+      setup:"You are a receptionist. A guest calls to make a booking:",
+      customer:"Hi, I'd like to book a table for four people this Saturday evening.",
+      hint:"客人要訂週六晚上四人桌",
+      target:["book","available","confirm"],
+      model:"Of course! Let me check availability. Saturday evening for four — what time were you thinking? And could I take your name, please?",
+      modelZh:"當然！讓我查一下。週六晚上四位——請問幾點？請問您的姓名？",
+      tips:["Let me check = 讓我查一下（專業回應）","What time were you thinking? = 請問幾點？（軟性問句）","Could I take your name? 比 What's your name? 更有禮貌"] },
+    { id:"rest2", theme:"Restaurant service", icon:"🍽️",
+      setup:"A guest at the table says:",
+      customer:"Excuse me, could you tell me what's in the mushroom risotto? I'm allergic to dairy.",
+      hint:"客人詢問蘑菇燉飯的成份（對乳製品過敏）",
+      target:["contain","allergy","alternative"],
+      model:"Certainly! The risotto does contain butter and parmesan. However, we can make a dairy-free version for you. Would that suit you?",
+      modelZh:"當然！燉飯含有奶油和帕馬森乳酪。不過我們可以為您做無乳製品版本，這樣可以嗎？",
+      tips:["Certainly! = 當然！（比 Yes 更專業）","does contain = 確實含有（強調事實）","Would that suit you? = 這樣適合您嗎？（服務業常用）"] },
+    { id:"travel1", theme:"Living in Brisbane", icon:"🏙️",
+      setup:"You are at the Centrelink office applying for a Tax File Number:",
+      customer:"Hi, I need to apply for a TFN. I'm on a working holiday visa.",
+      hint:"你要說明你的情況並詢問下一步",
+      target:["apply","document","process"],
+      model:"Sure! For a working holiday visa, you'll need your passport, your visa grant notice, and proof of address. The application is online — I can walk you through it.",
+      modelZh:"好的！持打工度假簽證，您需要護照、簽證批准通知和地址證明。申請是線上的——我可以帶您操作。",
+      tips:["walk someone through = 一步一步指導某人","proof of address = 地址證明（租約或銀行信件）","visa grant notice = 簽證批准通知書"] },
+    { id:"work1", theme:"Job interview", icon:"💼",
+      setup:"You are in a job interview at a Brisbane café:",
+      customer:"Can you tell me a bit about your customer service experience?",
+      hint:"談談你的客服經驗",
+      target:["experience","handle","communicate"],
+      model:"Sure! I've been working as a restaurant receptionist in Taiwan for two years. I greet guests, explain the menu, and handle table bookings. I'm used to working under pressure and communicating with people from different backgrounds.",
+      modelZh:"當然！我在台灣擔任餐廳接待員兩年，負責迎賓、介紹菜單和管理訂位。我習慣在壓力下工作，也善於和不同背景的人溝通。",
+      tips:["I've been working as… = 我一直擔任…（現在完成進行）","I'm used to + V-ing = 我習慣做…","working under pressure = 在壓力下工作（面試加分詞彙）"] },
+    { id:"daily1", theme:"Daily life", icon:"🏠",
+      setup:"You are chatting with a new housemate in Brisbane:",
+      customer:"So, what do you do back in Taiwan?",
+      hint:"向新室友介紹自己在台灣的工作和計畫",
+      target:["used to","currently","plan"],
+      model:"I used to work as a restaurant receptionist in Kaohsiung. I'm currently on a working holiday, so I'm looking for hospitality work here. I also plan to improve my English while I'm here.",
+      modelZh:"我在高雄擔任餐廳接待員。我目前在打工度假，所以在這裡找餐飲相關的工作。我也計畫在這段時間提升英語。",
+      tips:["used to + V = 過去曾經做…（現在不再了）","I'm currently = 我目前正在","hospitality = 餐飲住宿業（好用的行業詞）"] },
+  ]
+};
+
+let _rpIdx = 0;
+let _rpPool = [];
+
+function renderReviewRoleplay() {
+  const container = document.getElementById('reviewContainer');
+  // Build pool from available scenarios for current language filter
+  const langs = reviewLangFilter === 'ALL' ? ['ES','DE','EN'] : [reviewLangFilter];
+  if (!_rpPool.length) {
+    _rpPool = langs.flatMap(l => (ROLEPLAY_SCENARIOS[l]||[]).map(s=>({...s, lang:l})));
+    _rpPool = _rpPool.sort(()=>Math.random()-.5);
+    _rpIdx = 0;
+  }
+  if (_rpIdx >= _rpPool.length) { _rpIdx = 0; _rpPool = _rpPool.sort(()=>Math.random()-.5); }
+  const s = _rpPool[_rpIdx];
+  const langColor = {ES:'#e05c5c',DE:'#e09a2a',EN:'#4a9eca'}[s.lang]||'#888';
+
+  container.innerHTML = `
+    <div class="review-header">
+      <span>${s.icon} ${s.theme}</span>
+      <span style="color:${langColor};font-weight:700">${s.lang}</span>
+      <span>${_rpIdx+1} / ${_rpPool.length}</span>
+    </div>
+    <div style="background:#252540;border-radius:16px;padding:18px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">情境設定</div>
+      <div style="font-size:14px;color:#d0c8f0;line-height:1.6;margin-bottom:12px">${s.setup}</div>
+      <div style="background:#16162a;border-radius:10px;padding:12px;border-left:3px solid ${langColor}">
+        <div style="font-size:13px;color:#888;margin-bottom:4px">對方說：</div>
+        <div style="font-size:15px;color:#fff;font-style:italic;line-height:1.5">${s.customer}</div>
+        <div style="font-size:12px;color:#666;margin-top:6px">${s.hint}</div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:#666">
+        💡 關鍵字：${s.target.map(t=>`<span style="color:#f0c070;font-weight:600">${t}</span>`).join(' · ')}
+      </div>
+    </div>
+    <div id="rpReveal" style="display:none">
+      <div style="background:#1a2a1a;border-radius:12px;padding:16px;margin-bottom:10px;border-left:3px solid #70c08a">
+        <div style="font-size:11px;font-weight:700;color:#70c08a;margin-bottom:6px">✓ 參考回答</div>
+        <div style="font-size:15px;color:#fff;line-height:1.6;font-style:italic">${s.model}</div>
+        <div style="font-size:13px;color:#888;margin-top:6px">${s.modelZh}</div>
+      </div>
+      <div style="background:#1e1e38;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:#a080d0;margin-bottom:8px">📌 表達技巧</div>
+        ${s.tips.map(t=>`<div style="font-size:13px;color:#c0c8e8;padding:4px 0;border-bottom:1px solid #2e2e4a">• ${t}</div>`).join('')}
+      </div>
+    </div>
+    <div id="rpBtns">
+      <button style="width:100%;padding:14px;background:#3a2e5a;border:none;border-radius:14px;color:#c0a0ff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px" onclick="rpReveal()">💬 查看參考回答</button>
+    </div>`;
+}
+
+function rpReveal() {
+  document.getElementById('rpReveal').style.display = '';
+  document.getElementById('rpBtns').innerHTML = `
+    <div style="display:flex;gap:10px">
+      <button style="flex:1;padding:14px;background:#3a1a1a;border:none;border-radius:14px;color:#f07070;font-size:14px;font-weight:700;cursor:pointer" onclick="rpNext(0)">😓 需要練習</button>
+      <button style="flex:1;padding:14px;background:#1a3a2a;border:none;border-radius:14px;color:#70c08a;font-size:14px;font-weight:700;cursor:pointer" onclick="rpNext(1)">😊 我會了！</button>
+    </div>`;
+}
+
+function rpNext(ok) {
+  _rpIdx++;
+  if (_rpIdx >= _rpPool.length) { _rpPool=[]; }
+  renderReviewRoleplay();
 }
 
 function levenshtein(a, b) {
@@ -6601,33 +6806,33 @@ const EXTRA_WORDS = [
 
   // ── 德文 A2 動詞（高頻 Goethe）──
   {verb:"brauchen",lang:"DE",level:"A1",pos:"v",meaning:"需要",example:"Ich brauche ein Wörterbuch.",exampleZh:"我需要一本字典。",
-   conj:{pres:["brauche","brauchst","braucht","brauchen","braucht","brauchen"],past:["brauchte","brauchtest","brauchte","brauchten","brauchtet","brauchten"],imp:["-","-","-","-","-","-"],fut:["werde brauchen","wirst brauchen","wird brauchen","werden brauchen","werdet brauchen","werden brauchen"],part:["gebraucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["brauche","brauchst","braucht","brauchen","braucht","brauchen"],past:["brauchte","brauchtest","brauchte","brauchten","brauchtet","brauchten"],imp:["kam","kamst","kam","kamen","kamt","kamen"],fut:["werde brauchen","wirst brauchen","wird brauchen","werden brauchen","werdet brauchen","werden brauchen"],part:["gebraucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"suchen",lang:"DE",level:"A1",pos:"v",meaning:"尋找",example:"Ich suche eine günstige Wohnung.",exampleZh:"我在找便宜的公寓。",
-   conj:{pres:["suche","suchst","sucht","suchen","sucht","suchen"],past:["suchte","suchtest","suchte","suchten","suchtet","suchten"],imp:["-","-","-","-","-","-"],fut:["werde suchen","wirst suchen","wird suchen","werden suchen","werdet suchen","werden suchen"],part:["gesucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["suche","suchst","sucht","suchen","sucht","suchen"],past:["suchte","suchtest","suchte","suchten","suchtet","suchten"],imp:["suchte","suchtest","suchte","suchten","suchtet","suchten"],fut:["werde suchen","wirst suchen","wird suchen","werden suchen","werdet suchen","werden suchen"],part:["gesucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"kaufen",lang:"DE",level:"A1",pos:"v",meaning:"購買",example:"Ich kaufe frisches Gemüse.",exampleZh:"我買新鮮蔬菜。",
-   conj:{pres:["kaufe","kaufst","kauft","kaufen","kauft","kaufen"],past:["kaufte","kauftest","kaufte","kauften","kauftet","kauften"],imp:["-","-","-","-","-","-"],fut:["werde kaufen","wirst kaufen","wird kaufen","werden kaufen","werdet kaufen","werden kaufen"],part:["gekauft","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["kaufe","kaufst","kauft","kaufen","kauft","kaufen"],past:["kaufte","kauftest","kaufte","kauften","kauftet","kauften"],imp:["kaufte","kauftest","kaufte","kauften","kauftet","kauften"],fut:["werde kaufen","wirst kaufen","wird kaufen","werden kaufen","werdet kaufen","werden kaufen"],part:["gekauft","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"fragen",lang:"DE",level:"A1",pos:"v",meaning:"詢問",example:"Ich frage den Kellner nach dem Preis.",exampleZh:"我問服務生價格。",
-   conj:{pres:["frage","fragst","fragt","fragen","fragt","fragen"],past:["fragte","fragtest","fragte","fragten","fragtet","fragten"],imp:["-","-","-","-","-","-"],fut:["werde fragen","wirst fragen","wird fragen","werden fragen","werdet fragen","werden fragen"],part:["gefragt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["frage","fragst","fragt","fragen","fragt","fragen"],past:["fragte","fragtest","fragte","fragten","fragtet","fragten"],imp:["fragte","fragtest","fragte","fragten","fragtet","fragten"],fut:["werde fragen","wirst fragen","wird fragen","werden fragen","werdet fragen","werden fragen"],part:["gefragt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"sagen",lang:"DE",level:"A1",pos:"v",meaning:"說",example:"Kannst du das nochmal sagen?",exampleZh:"你能再說一遍嗎？",
-   conj:{pres:["sage","sagst","sagt","sagen","sagt","sagen"],past:["sagte","sagtest","sagte","sagten","sagtet","sagten"],imp:["-","-","-","-","-","-"],fut:["werde sagen","wirst sagen","wird sagen","werden sagen","werdet sagen","werden sagen"],part:["gesagt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["sage","sagst","sagt","sagen","sagt","sagen"],past:["sagte","sagtest","sagte","sagten","sagtet","sagten"],imp:["sagte","sagtest","sagte","sagten","sagtet","sagten"],fut:["werde sagen","wirst sagen","wird sagen","werden sagen","werdet sagen","werden sagen"],part:["gesagt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"kommen",lang:"DE",level:"A1",pos:"v",meaning:"來、到來",example:"Wann kommst du nach Brisbane?",exampleZh:"你什麼時候來布里斯本？",
-   conj:{pres:["komme","kommst","kommt","kommen","kommt","kommen"],past:["kam","kamst","kam","kamen","kamt","kamen"],imp:["-","-","-","-","-","-"],fut:["werde kommen","wirst kommen","wird kommen","werden kommen","werdet kommen","werden kommen"],part:["gekommen","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["komme","kommst","kommt","kommen","kommt","kommen"],past:["kam","kamst","kam","kamen","kamt","kamen"],imp:["kam","kamst","kam","kamen","kamt","kamen"],fut:["werde kommen","wirst kommen","wird kommen","werden kommen","werdet kommen","werden kommen"],part:["gekommen","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"geben",lang:"DE",level:"A1",pos:"v",meaning:"給",example:"Kannst du mir die Speisekarte geben?",exampleZh:"你可以給我菜單嗎？",
-   conj:{pres:["gebe","gibst","gibt","geben","gebt","geben"],past:["gab","gabst","gab","gaben","gabt","gaben"],imp:["-","-","-","-","-","-"],fut:["werde geben","wirst geben","wird geben","werden geben","werdet geben","werden geben"],part:["gegeben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["gebe","gibst","gibt","geben","gebt","geben"],past:["gab","gabst","gab","gaben","gabt","gaben"],imp:["gab","gabst","gab","gaben","gabt","gaben"],fut:["werde geben","wirst geben","wird geben","werden geben","werdet geben","werden geben"],part:["gegeben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"wissen",lang:"DE",level:"A2",pos:"v",meaning:"知道（事實）",example:"Ich weiß nicht, wo der Bahnhof ist.",exampleZh:"我不知道車站在哪裡。",
-   conj:{pres:["weiß","weißt","weiß","wissen","wisst","wissen"],past:["wusste","wusstest","wusste","wussten","wusstet","wussten"],imp:["-","-","-","-","-","-"],fut:["werde wissen","wirst wissen","wird wissen","werden wissen","werdet wissen","werden wissen"],part:["gewusst","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["weiß","weißt","weiß","wissen","wisst","wissen"],past:["wusste","wusstest","wusste","wussten","wusstet","wussten"],imp:["wusste","wusstest","wusste","wussten","wusstet","wussten"],fut:["werde wissen","wirst wissen","wird wissen","werden wissen","werdet wissen","werden wissen"],part:["gewusst","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"lassen",lang:"DE",level:"B1",pos:"v",meaning:"讓、留",example:"Lass mich das erklären.",exampleZh:"讓我來解釋。",
-   conj:{pres:["lasse","lässt","lässt","lassen","lasst","lassen"],past:["ließ","ließt","ließ","ließen","ließt","ließen"],imp:["-","-","-","-","-","-"],fut:["werde lassen","wirst lassen","wird lassen","werden lassen","werdet lassen","werden lassen"],part:["gelassen","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["lasse","lässt","lässt","lassen","lasst","lassen"],past:["ließ","ließt","ließ","ließen","ließt","ließen"],imp:["ließ","ließt","ließ","ließen","ließt","ließen"],fut:["werde lassen","wirst lassen","wird lassen","werden lassen","werdet lassen","werden lassen"],part:["gelassen","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"besuchen",lang:"DE",level:"A2",pos:"v",meaning:"參觀、拜訪",example:"Ich möchte die Kunstgalerie besuchen.",exampleZh:"我想參觀美術館。",
-   conj:{pres:["besuche","besuchst","besucht","besuchen","besucht","besuchen"],past:["besuchte","besuchtest","besuchte","besuchten","besuchtet","besuchten"],imp:["-","-","-","-","-","-"],fut:["werde besuchen","wirst besuchen","wird besuchen","werden besuchen","werdet besuchen","werden besuchen"],part:["besucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["besuche","besuchst","besucht","besuchen","besucht","besuchen"],past:["besuchte","besuchtest","besuchte","besuchten","besuchtet","besuchten"],imp:["besuchte","besuchtest","besuchte","besuchten","besuchtet","besuchten"],fut:["werde besuchen","wirst besuchen","wird besuchen","werden besuchen","werdet besuchen","werden besuchen"],part:["besucht","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"schreiben",lang:"DE",level:"A1",pos:"v",meaning:"寫",example:"Ich schreibe täglich in mein Tagebuch.",exampleZh:"我每天寫日記。",
-   conj:{pres:["schreibe","schreibst","schreibt","schreiben","schreibt","schreiben"],past:["schrieb","schriebst","schrieb","schrieben","schriebt","schrieben"],imp:["-","-","-","-","-","-"],fut:["werde schreiben","wirst schreiben","wird schreiben","werden schreiben","werdet schreiben","werden schreiben"],part:["geschrieben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["schreibe","schreibst","schreibt","schreiben","schreibt","schreiben"],past:["schrieb","schriebst","schrieb","schrieben","schriebt","schrieben"],imp:["schrieb","schriebst","schrieb","schrieben","schriebt","schrieben"],fut:["werde schreiben","wirst schreiben","wird schreiben","werden schreiben","werdet schreiben","werden schreiben"],part:["geschrieben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"verstehen",lang:"DE",level:"A2",pos:"v",meaning:"理解、聽懂",example:"Ich verstehe die Grammatik langsam besser.",exampleZh:"我對語法慢慢理解得更好。",
-   conj:{pres:["verstehe","verstehst","versteht","verstehen","versteht","verstehen"],past:["verstand","verstandst","verstand","verstanden","verstandet","verstanden"],imp:["-","-","-","-","-","-"],fut:["werde verstehen","wirst verstehen","wird verstehen","werden verstehen","werdet verstehen","werden verstehen"],part:["verstanden","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["verstehe","verstehst","versteht","verstehen","versteht","verstehen"],past:["verstand","verstandst","verstand","verstanden","verstandet","verstanden"],imp:["verstand","verstandst","verstand","verstanden","verstandet","verstanden"],fut:["werde verstehen","wirst verstehen","wird verstehen","werden verstehen","werdet verstehen","werden verstehen"],part:["verstanden","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"lernen",lang:"DE",level:"A1",pos:"v",meaning:"學習",example:"Ich lerne jeden Tag neue Wörter.",exampleZh:"我每天學習新單字。",
-   conj:{pres:["lerne","lernst","lernt","lernen","lernt","lernen"],past:["lernte","lerntest","lernte","lernten","lerntet","lernten"],imp:["-","-","-","-","-","-"],fut:["werde lernen","wirst lernen","wird lernen","werden lernen","werdet lernen","werden lernen"],part:["gelernt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["lerne","lernst","lernt","lernen","lernt","lernen"],past:["lernte","lerntest","lernte","lernten","lerntet","lernten"],imp:["lernte","lerntest","lernte","lernten","lerntet","lernten"],fut:["werde lernen","wirst lernen","wird lernen","werden lernen","werdet lernen","werden lernen"],part:["gelernt","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
   {verb:"bleiben",lang:"DE",level:"A1",pos:"v",meaning:"留下、保持",example:"Ich bleibe ein Jahr in Brisbane.",exampleZh:"我在布里斯本待一年。",
-   conj:{pres:["bleibe","bleibst","bleibt","bleiben","bleibt","bleiben"],past:["blieb","bliebst","blieb","blieben","bliebt","blieben"],imp:["-","-","-","-","-","-"],fut:["werde bleiben","wirst bleiben","wird bleiben","werden bleiben","werdet bleiben","werden bleiben"],part:["geblieben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
+   conj:{pres:["bleibe","bleibst","bleibt","bleiben","bleibt","bleiben"],past:["blieb","bliebst","blieb","blieben","bliebt","blieben"],imp:["blieb","bliebst","blieb","blieben","bliebt","blieben"],fut:["werde bleiben","wirst bleiben","wird bleiben","werden bleiben","werdet bleiben","werden bleiben"],part:["geblieben","-","-","-","-","-"],subj:["-","-","-","-","-","-"],subjimp:["-","-","-","-","-","-"]}},
 
   // ── 德文 B1 詞彙 ──
   {verb:"die Erfahrung",lang:"DE",level:"B1",pos:"n",theme:"工作",meaning:"經驗",example:"Ich möchte Berufserfahrung im Ausland sammeln.",exampleZh:"我想在海外累積工作經驗。",inflect:"f. -, -en",conj:{}},

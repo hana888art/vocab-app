@@ -4902,7 +4902,7 @@ function renderReview() {
   const w = reviewQueue[reviewIndex];
   const prog = srsGet(w.verb);
   const stateColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
-  const stateLabel = ['未開始','學習中','熟悉','精通'][prog.state];
+  const stateLabel = ['未學習','初學中','已認識','已精通'][prog.state];
   const pct = ((reviewIndex/reviewQueue.length)*100).toFixed(1);
 
   const SPEAK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#888;width:18px;height:18px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
@@ -5013,7 +5013,7 @@ function renderStats() {
       <div class="stats-title">📊 掌握程度分佈</div>
       <canvas id="masteryChart" width="300" height="180" style="display:block;margin:0 auto 12px"></canvas>
       <div class="mastery-legend">
-        ${[['#555','未開始',cnt[0]],['#e09a2a','學習中',cnt[1]],['#4a9eca','熟悉',cnt[2]],['#70c08a','精通',cnt[3]]].map(([c,l,n])=>`
+        ${[['#555','未學習',cnt[0]],['#e09a2a','初學中',cnt[1]],['#4a9eca','已認識',cnt[2]],['#70c08a','已精通',cnt[3]]].map(([c,l,n])=>`
           <div class="legend-item">
             <div class="legend-dot" style="background:${c}"></div>
             <span style="color:#aaa">${l}</span>
@@ -5029,7 +5029,7 @@ function renderStats() {
         const pct = x.total ? Math.round(x.mastered/x.total*100) : 0;
         return `<div class="pbar-row">
           <div class="pbar-label">
-            <span><b style="color:${lColor[x.l]}">${lNames[x.l]}</b> &nbsp;${x.mastered}/${x.total} 已熟悉</span>
+            <span><b style="color:${lColor[x.l]}">${lNames[x.l]}</b> &nbsp;${x.mastered}/${x.total} 已認識</span>
             <span style="color:${lColor[x.l]}">${pct}%</span>
           </div>
           <div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${lColor[x.l]}"></div></div>
@@ -5075,7 +5075,7 @@ function renderStats() {
         </div>
       </div>
       <div style="font-size:12px;color:#888;margin-top:10px">
-        共 ${total} 個 · 已熟悉 ${cnt[2]+cnt[3]} 個 · 精通 ${cnt[3]} 個
+        共 ${total} 個 · 已認識 ${cnt[2]+cnt[3]} 個 · 已精通 ${cnt[3]} 個
       </div>
     </div>`;
 
@@ -5102,7 +5102,7 @@ function renderStats() {
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(famPct+'%', cx, cy-9);
     ctx.fillStyle='#888'; ctx.font='11px -apple-system,sans-serif';
-    ctx.fillText('已熟悉', cx, cy+10);
+    ctx.fillText('認識率', cx, cy+10);
   });
 }
 
@@ -5359,7 +5359,7 @@ function render() {
     const pos   = w.pos || "v";
     const prog  = data.words[w.verb] || {state:0};
     const sColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
-    const sLabel = ['未開始','學習中','熟悉','精通'][prog.state];
+    const sLabel = ['未學習','初學中','已認識','已精通'][prog.state];
     const posLabel = POS_LABELS[pos] || pos;
 
     // === 動詞卡片 ===

@@ -380,6 +380,147 @@
     font-size: 15px; font-weight: 600; cursor: pointer;
   }
 
+  /* ── 時態說明按鈕 ── */
+  .tense-info-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid currentColor; background: transparent;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    opacity: 0.6; flex-shrink: 0; line-height: 1;
+    transition: opacity 0.15s;
+  }
+  .tense-info-btn:active { opacity: 1; }
+
+  /* ── 時態說明彈窗 ── */
+  #tenseExplainOverlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 2200;
+    align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  #tenseExplainOverlay.open { display: flex; }
+  .te-panel {
+    background: #1e1e38; border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px; width: 100%; max-width: 480px;
+    max-height: 85vh; overflow-y: auto;
+    animation: slideUp 0.25s ease;
+  }
+  .te-title { font-size: 18px; font-weight: 700; color: #f0e8ff; margin-bottom: 6px; }
+  .te-section-label {
+    font-size: 11px; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 16px 0 8px;
+  }
+  .te-when-list { list-style: none; padding: 0; margin: 0; }
+  .te-when-list li {
+    padding: 6px 10px; background: #252540; border-radius: 8px;
+    font-size: 13px; color: #c0c8e8; margin-bottom: 6px;
+  }
+  .te-when-list li::before { content: "✦ "; color: #a080d0; }
+  .te-example {
+    background: #16162a; border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px;
+  }
+  .te-example-orig { font-size: 14px; color: #fff; font-style: italic; }
+  .te-example-zh { font-size: 12px; color: #888; margin-top: 3px; }
+  .te-note {
+    background: #2a2218; border-left: 3px solid #f0c070;
+    padding: 10px 12px; border-radius: 0 8px 8px 0;
+    font-size: 12px; color: #d0b080; margin-top: 6px;
+  }
+  .te-contrast {
+    background: #1a2a1a; border-radius: 12px;
+    padding: 14px; margin-top: 8px;
+  }
+  .te-contrast-title { font-size: 13px; font-weight: 700; color: #90e0a0; margin-bottom: 10px; }
+  .te-contrast-row {
+    border-left: 3px solid #4a9eca; padding: 8px 10px;
+    margin-bottom: 8px; border-radius: 0 8px 8px 0;
+    background: #16202a;
+  }
+  .te-contrast-row:last-child { margin-bottom: 0; }
+  .te-contrast-label { font-size: 12px; font-weight: 700; color: #4a9eca; margin-bottom: 3px; }
+  .te-contrast-desc { font-size: 12px; color: #b0c8d8; }
+  .te-contrast-ex { font-size: 12px; color: #f0c070; font-style: italic; margin-top: 3px; }
+  .te-close {
+    width: 100%; padding: 14px; background: #2e2e4a;
+    border: none; border-radius: 14px; color: #888;
+    font-size: 14px; cursor: pointer; margin-top: 20px;
+  }
+
+  /* ── 複習篩選 & 模式列 ── */
+  .review-top-bar {
+    padding: 14px 16px 0;
+    max-width: 480px; margin: 0 auto;
+  }
+  .review-filter-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .rv-tag {
+    padding: 5px 12px; border-radius: 20px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    background: #2e2e4a; color: #888; transition: all 0.15s;
+  }
+  .rv-tag.active { color: #fff; }
+  .rv-tag[data-rl="ES"].active { background: #e05c5c; }
+  .rv-tag[data-rl="DE"].active { background: #e09a2a; }
+  .rv-tag[data-rl="EN"].active { background: #4a9eca; }
+  .rv-tag[data-rl="ALL"].active,
+  .rv-tag[data-ll].active { background: #5a4a8a; }
+  .review-mode-bar {
+    display: flex; gap: 8px; margin-bottom: 6px;
+  }
+  .review-mode-btn {
+    flex: 1; padding: 9px 4px; border-radius: 12px; border: none;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    background: #2e2e4a; color: #888; transition: all 0.15s;
+  }
+  .review-mode-btn.active { background: #5a3a8a; color: #f0e8ff; }
+
+  /* ── 選擇題模式 ── */
+  .choice-options {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-top: 12px;
+  }
+  .choice-opt {
+    padding: 14px 10px; border-radius: 14px;
+    border: 2px solid #2e2e4a; background: #1e1e38;
+    color: #c0c8e8; font-size: 14px; font-weight: 600;
+    cursor: pointer; text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .choice-opt:active { transform: scale(0.97); }
+  .choice-opt.correct { background: #1a3a2a; border-color: #70c08a; color: #90f0aa; }
+  .choice-opt.wrong   { background: #3a1a1a; border-color: #f07070; color: #ffaaaa; }
+  .choice-opt.reveal  { background: #1a3a2a; border-color: #70c08a; color: #90f0aa; }
+  .choice-opt[disabled] { cursor: default; }
+
+  /* ── 語音識別模式 ── */
+  .voice-area { text-align: center; margin-top: 20px; }
+  .voice-mic-btn {
+    width: 72px; height: 72px; border-radius: 50%;
+    border: none; background: #3a2e5a; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 28px; transition: background 0.2s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .voice-mic-btn.listening { background: #f07070; animation: pulse 1s infinite; }
+  .voice-mic-btn:active { transform: scale(0.93); }
+  .voice-result {
+    margin-top: 12px; font-size: 15px; color: #c0c8e8;
+    min-height: 24px; font-style: italic;
+  }
+  .voice-verdict {
+    font-size: 20px; font-weight: 700; margin-top: 8px;
+    min-height: 28px;
+  }
+  .voice-hint { font-size: 12px; color: #555; margin-top: 8px; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(240,112,112,0.5); }
+    50% { box-shadow: 0 0 0 12px rgba(240,112,112,0); }
+  }
+
   /* ── 統計視圖 ── */
   .stats-view {
     padding: 16px 16px 90px;
@@ -656,6 +797,11 @@
     <div id="wmContent"></div>
     <button class="wm-close" onclick="closeWordModal()">關閉</button>
   </div>
+</div>
+
+<!-- 時態說明彈窗 -->
+<div id="tenseExplainOverlay">
+  <div class="te-panel" id="tenseExplainPanel"></div>
 </div>
 
 <!-- 文章閱讀 & 測驗彈窗 -->
@@ -4789,6 +4935,106 @@ const TENSE_CONFIG = [
   { key: "subjimp", label: "虛未",  cssClass: "tense-subjimp", name: "虛擬未完成式" },
 ];
 
+// ════════════════════════════════════════════
+// 時態語法說明資料
+// ════════════════════════════════════════════
+const TENSE_EXPLAIN = {
+  pres: {
+    ES: { title:"現在式 Presente de Indicativo",
+      when:["描述現在正在發生的動作","表達習慣或規律","陳述普遍事實","確定的近未來計劃（用現在式代替未來）"],
+      examples:[{src:"Trabajo en un restaurante.",zh:"我在餐廳工作。（習慣）"},{src:"Mañana voy a Brisbane.",zh:"我明天去布里斯本。（近未來）"}],
+      note:null, contrast:null },
+    DE: { title:"現在式 Präsens",
+      when:["現在的動作或狀態","習慣性動作","普遍事實","計劃中的未來（等同 Futur I）"],
+      examples:[{src:"Ich arbeite im Restaurant.",zh:"我在餐廳工作。"},{src:"Er kommt morgen.",zh:"他明天來。（用現在式表未來）"}],
+      note:"德語現在式非常靈活，幾乎可以取代未來式使用。", contrast:null }
+  },
+  past: {
+    ES: { title:"過去完成式 Pretérito Indefinido（Perfecto Simple）",
+      when:["有明確時間點的完成動作（ayer, el lunes, en 2020…）","單次、有邊界的事件","改變狀態的時刻"],
+      examples:[{src:"Ayer comí sushi.",zh:"昨天我吃了壽司。"},{src:"Llegué a Brisbane en agosto.",zh:"我八月抵達布里斯本。"}],
+      note:null,
+      contrast:{ title:"⚡ Indefinido vs Imperfecto 怎麼區分？",
+        rows:[
+          {label:"Indefinido（過去完成）",desc:"完成的一次性動作，有明確時間點",ex:"Ayer <b>comí</b> pizza."},
+          {label:"Imperfecto（未完成）",desc:"過去習慣、持續狀態、故事背景",ex:"De niña, <b>comía</b> pizza cada viernes."},
+          {label:"實用判斷技巧",desc:"問自己：這件事「做完了/發生了一次」→Indefinido；「那時一直這樣/習慣」→Imperfecto",ex:""}
+        ]}},
+    DE: { title:"過去式 Präteritum",
+      when:["書面語（報紙、小說、報告）的過去式","sein / haben / 情態動詞口語也常用","南德口語中幾乎不用，改用 Perfekt"],
+      examples:[{src:"Ich war müde.",zh:"我很累。（sein 常用 Präteritum）"},{src:"Sie hatte keine Zeit.",zh:"她沒有時間。"}],
+      note:"口語黃金規則：Perfekt 幾乎取代一切。Ich habe gegessen 比 Ich aß 自然 100 倍。", contrast:null }
+  },
+  imp: {
+    ES: { title:"未完成過去式 Pretérito Imperfecto",
+      when:["過去習慣或反覆的動作（cuando era niño…、siempre…、todos los días…）","過去的持續狀態或感情","描述故事背景或場景","兩個動作同時進行（mientras…）"],
+      examples:[{src:"Cuando era niña, estudiaba mucho.",zh:"我小時候很用功。（過去習慣）"},{src:"Hacía frío y llovía.",zh:"天氣很冷而且下著雨。（背景描述）"},{src:"Mientras comía, escuchaba música.",zh:"我一邊吃飯一邊聽音樂。（同時進行）"}],
+      note:null,
+      contrast:{ title:"⚡ Indefinido vs Imperfecto 怎麼區分？",
+        rows:[
+          {label:"Indefinido（過去完成）",desc:"完成的一次性動作，有明確時間點",ex:"Ayer <b>comí</b> pizza."},
+          {label:"Imperfecto（未完成）",desc:"過去習慣、持續狀態、故事背景",ex:"De niña, <b>comía</b> pizza cada viernes."},
+          {label:"實用判斷技巧",desc:"「做完了/發生了一次」→Indefinido；「那時一直這樣/習慣」→Imperfecto",ex:""}
+        ]}},
+    DE: { title:"未完成過去式 Imperfekt（= Präteritum）",
+      when:["德語中 Imperfekt 和 Präteritum 是同一個時態","書面語常見","口語中幾乎不用，口語偏用 Perfekt（haben/sein + Partizip II）"],
+      examples:[{src:"Er arbeitete jeden Tag.",zh:"他每天工作。"},{src:"Wir wohnten in Taiwan.",zh:"我們住在台灣。"}],
+      note:"口語中 Perfekt 更自然：Ich habe gegessen 遠比 Ich aß 常見。", contrast:null }
+  },
+  fut: {
+    ES: { title:"未來式 Futuro Simple",
+      when:["將來發生的事","推測或猜測（可能是…？）","承諾或決心"],
+      examples:[{src:"Mañana trabajaré.",zh:"我明天會上班。"},{src:"¿Dónde estará Juan ahora?",zh:"Juan 現在可能在哪裡？（推測）"}],
+      note:"日常口語中更常用 ir a + infinitivo：Voy a trabajar mañana. 感覺更自然、更口語。", contrast:null },
+    DE: { title:"將來式 Futur I（werden + Infinitiv）",
+      when:["明確表達未來的動作","推測或假設","强調決心或承諾"],
+      examples:[{src:"Ich werde morgen arbeiten.",zh:"我明天會工作。"},{src:"Er wird krank sein.",zh:"他可能病了。（推測）"}],
+      note:"口語中通常直接用現在式代替：Ich arbeite morgen. 和 Ich werde morgen arbeiten. 意思幾乎相同。", contrast:null }
+  },
+  part: {
+    ES: { title:"完成分詞 Participio Pasado",
+      when:["與 haber 組成複合時態（現在完成式、愈過去式）","作形容詞使用（需與名詞的性和數一致）","被動語態（ser + participio）"],
+      examples:[{src:"He comido sushi.",zh:"我吃了壽司。（現在完成 Perfecto Compuesto）"},{src:"La puerta está cerrada.",zh:"門是關著的。（形容詞）"},{src:"El informe fue escrito por Ana.",zh:"報告是 Ana 寫的。（被動）"}],
+      note:"-ar 動詞→ -ado（hablar→hablado）；-er/-ir→ -ido（comer→comido，vivir→vivido）。\n不規則分詞：hecho(hacer)、visto(ver)、dicho(decir)、escrito(escribir)、puesto(poner)、vuelto(volver)、roto(romper)。", contrast:null },
+    DE: { title:"過去分詞 Partizip II",
+      when:["與 haben 或 sein 組成完成時態 Perfekt","被動語態 Passiv（werden + Partizip II）","作形容詞"],
+      examples:[{src:"Ich habe gegessen.",zh:"我吃了。（Perfekt）"},{src:"Das Fenster ist geöffnet.",zh:"窗戶是開著的。（形容詞）"},{src:"Das Buch wurde geschrieben.",zh:"這本書被寫了。（被動）"}],
+      note:"規則動詞：ge- + 詞根 + -t（kaufen→gekauft）。不規則動詞（強變化）：ge- + 元音變化詞根 + -en（schreiben→geschrieben, fahren→gefahren）。前綴 be-/ver-/er-/ent- 的動詞不加 ge-（besuchen→besucht）。", contrast:null }
+  },
+  subj: {
+    ES: { title:"虛擬現在式 Subjuntivo Presente",
+      when:["表達願望、期望（Espero que…、Quiero que…）","表達情感（Me alegra que…、Es triste que…）","表達懷疑或否定（No creo que…、Dudo que…）","給出建議（Te recomiendo que…）","表達未來不確定（Cuando llegues…、Antes de que salgas…）"],
+      examples:[{src:"Espero que vengas mañana.",zh:"我希望你明天來。"},{src:"No creo que sea verdad.",zh:"我不認為這是真的。"},{src:"Cuando tengas tiempo, llámame.",zh:"等你有空的時候，打給我。"}],
+      note:null,
+      contrast:{ title:"⚡ Subjuntivo Presente vs Imperfecto 怎麼區分？",
+        rows:[
+          {label:"Subjuntivo Presente",desc:"主句為現在式或未來式 → 從句用現在式虛擬",ex:"<b>Espero</b> que <b>vengas</b>."},
+          {label:"Subjuntivo Imperfecto",desc:"主句為過去式 → 從句用未完成虛擬；Si 假設句",ex:"<b>Quería</b> que <b>vinieras</b>. / Si <b>tuviera</b> dinero…"},
+          {label:"記憶口訣",desc:"主句時態決定虛擬式時態：現在主→現在虛，過去主→未完成虛",ex:""}
+        ]}},
+    DE: { title:"虛擬式 I Konjunktiv I",
+      when:["間接引語（轉述他人的話）","正式書面語、新聞報導"],
+      examples:[{src:"Er sagt, er habe keine Zeit.",zh:"他說他沒時間。（間接引語）"},{src:"Die Regierung erklärt, es sei kein Problem.",zh:"政府表示這不是問題。"}],
+      note:"日常口語幾乎不用！主要出現在報紙或正式文章中。如果 Konjunktiv I 和直陳式形式相同，則用 Konjunktiv II 代替。", contrast:null }
+  },
+  subjimp: {
+    ES: { title:"虛擬未完成式 Subjuntivo Imperfecto",
+      when:["假設句：Si + 虛擬未完成 + 條件式（如果…的話，就會…）","主句為過去式時的從句願望/情感","有禮貌的請求（Quisiera…／Debiera…）","過去無法實現的願望"],
+      examples:[{src:"Si tuviera dinero, viajaría a Brisbane.",zh:"如果我有錢，我就去布里斯本旅行。（假設）"},{src:"Quería que vinieras a la fiesta.",zh:"我希望你來派對。（過去的願望）"},{src:"Quisiera un café, por favor.",zh:"我想要一杯咖啡，謝謝。（禮貌請求）"}],
+      note:null,
+      contrast:{ title:"⚡ Subjuntivo Presente vs Imperfecto 怎麼區分？",
+        rows:[
+          {label:"Subjuntivo Presente",desc:"主句現在式，關於現在或未來的願望/情感",ex:"<b>Espero</b> que <b>vengas</b>."},
+          {label:"Subjuntivo Imperfecto",desc:"主句過去式，或「si + 假設」句",ex:"<b>Quería</b> que <b>vinieras</b>. / Si <b>tuviera</b>…"},
+          {label:"記憶口訣",desc:"主句現在→虛擬現在；主句過去→虛擬未完成",ex:""}
+        ]}},
+    DE: { title:"虛擬式 II Konjunktiv II",
+      when:["禮貌請求（Ich hätte gerne…、Könnten Sie bitte…、Würden Sie bitte…）","假設或反事實條件（Wenn ich Zeit hätte, würde ich…）","間接建議或軟化語氣"],
+      examples:[{src:"Wenn ich Zeit hätte, würde ich mehr Deutsch lernen.",zh:"如果我有時間，我會多學德語。（假設）"},{src:"Könnten Sie mir bitte helfen?",zh:"您能幫我嗎？（禮貌）"},{src:"Ich würde gerne nach Brisbane reisen.",zh:"我很想去布里斯本旅行。"}],
+      note:"最常用形式：würde + Infinitiv（萬能用法）。特殊直接形：wäre (sein)、hätte (haben)、könnte (können)、müsste (müssen)、dürfte (dürfen)。這幾個形式比 würde 更自然。", contrast:null }
+  }
+};
+
 // 西班牙文人稱標籤
 const PERSONS_ES = ["Yo","Tú","Él/Ella","Nos.","Vos.","Ellos"];
 // 德文人稱標籤
@@ -4853,10 +5099,50 @@ function getReviewQueue() {
   const today = new Date().toISOString().split('T')[0];
   const data = srsLoad();
   const reviewed = new Set(data.todayReviewed||[]);
-  const dueWords  = WORDS.filter(w => { const p=data.words[w.verb]; return p && !reviewed.has(w.verb) && p.nextReview && p.nextReview<=today; });
-  const newWords  = WORDS.filter(w => !data.words[w.verb] && !reviewed.has(w.verb));
+  const pool = WORDS.filter(w => {
+    if (reviewLangFilter !== "ALL" && w.lang !== reviewLangFilter) return false;
+    if (reviewLevelFilter !== "ALL" && w.level !== reviewLevelFilter) return false;
+    return true;
+  });
+  const dueWords = pool.filter(w => { const p=data.words[w.verb]; return p && !reviewed.has(w.verb) && p.nextReview && p.nextReview<=today; });
+  const newWords = pool.filter(w => !data.words[w.verb] && !reviewed.has(w.verb));
   return [...dueWords, ...newWords.slice(0,15)];
 }
+
+function startReview() {
+  reviewQueue = getReviewQueue();
+  reviewIndex = 0; reviewFlipped = false;
+  renderReviewTop();
+  renderReview();
+}
+
+function renderReviewTop() {
+  const container = document.getElementById('reviewView');
+  let topBar = document.getElementById('reviewTopBar');
+  if (!topBar) {
+    topBar = document.createElement('div');
+    topBar.id = 'reviewTopBar';
+    topBar.className = 'review-top-bar';
+    container.prepend(topBar);
+  }
+  const langs = [['ALL','全部'],['ES','西文'],['DE','德文'],['EN','英文']];
+  const levels = [['ALL','全部'],['A1','A1'],['A2','A2'],['B1','B1'],['B2','B2'],['C1','C1']];
+  topBar.innerHTML = `
+    <div class="review-filter-row">
+      ${langs.map(([v,l])=>`<button class="rv-tag${reviewLangFilter===v?' active':''}" data-rl="${v}" onclick="setReviewLang('${v}')">${l}</button>`).join('')}
+      <div style="width:1px;background:#2e2e4a;height:24px;align-self:center;margin:0 2px"></div>
+      ${levels.map(([v,l])=>`<button class="rv-tag${reviewLevelFilter===v?' active':''}" data-ll="${v}" onclick="setReviewLevel('${v}')">${l}</button>`).join('')}
+    </div>
+    <div class="review-mode-bar">
+      <button class="review-mode-btn${reviewMode==='flip'?' active':''}" onclick="setReviewMode('flip')">🃏 翻牌</button>
+      <button class="review-mode-btn${reviewMode==='choice'?' active':''}" onclick="setReviewMode('choice')">☑️ 選擇題</button>
+      <button class="review-mode-btn${reviewMode==='voice'?' active':''}" onclick="setReviewMode('voice')">🎤 語音</button>
+    </div>`;
+}
+
+function setReviewLang(v) { reviewLangFilter=v; startReview(); }
+function setReviewLevel(v) { reviewLevelFilter=v; startReview(); }
+function setReviewMode(m) { reviewMode=m; reviewIndex=0; reviewFlipped=false; renderReviewTop(); renderReview(); }
 
 function getDueCount() {
   const today = new Date().toISOString().split('T')[0];
@@ -4876,12 +5162,7 @@ function updateBadge() {
 // 複習模式
 // ════════════════════════════════════════════
 let reviewQueue=[], reviewIndex=0, reviewFlipped=false;
-
-function startReview() {
-  reviewQueue = getReviewQueue();
-  reviewIndex = 0; reviewFlipped = false;
-  renderReview();
-}
+let reviewLangFilter="ALL", reviewLevelFilter="ALL", reviewMode="flip";
 
 function renderReview() {
   const container = document.getElementById('reviewContainer');
@@ -4899,12 +5180,14 @@ function renderReview() {
     return;
   }
 
+  if (reviewMode === 'choice') { renderReviewChoice(); return; }
+  if (reviewMode === 'voice')  { renderReviewVoice();  return; }
+
   const w = reviewQueue[reviewIndex];
   const prog = srsGet(w.verb);
   const stateColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
   const stateLabel = ['未學習','初學中','已認識','已精通'][prog.state];
   const pct = ((reviewIndex/reviewQueue.length)*100).toFixed(1);
-
   const SPEAK_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#888;width:18px;height:18px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
 
   container.innerHTML = `
@@ -4916,7 +5199,6 @@ function renderReview() {
     <div class="review-progress-track">
       <div style="width:${pct}%;background:#f07070;height:100%;border-radius:2px;transition:width 0.3s"></div>
     </div>
-
     <div class="review-card-wrap" id="reviewCardWrap" onclick="flipCard()">
       <div id="reviewFront">
         <span class="card-tag tag-${w.lang}">${w.lang}(${w.level})</span>
@@ -4941,12 +5223,151 @@ function renderReview() {
         </div>
       </div>
     </div>
-
     <div class="review-rating" id="reviewRating" style="display:none">
       <button class="rating-btn bad"  onclick="rateWord(0)">✗<br><small>不知道</small></button>
       <button class="rating-btn ok"   onclick="rateWord(1)">△<br><small>模糊</small></button>
       <button class="rating-btn good" onclick="rateWord(2)">✓<br><small>知道</small></button>
     </div>`;
+}
+
+// ── 選擇題模式 ──
+function renderReviewChoice() {
+  const container = document.getElementById('reviewContainer');
+  const w = reviewQueue[reviewIndex];
+  const prog = srsGet(w.verb);
+  const stateColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
+  const pct = ((reviewIndex/reviewQueue.length)*100).toFixed(1);
+  // 4 options: correct + 3 from same language or any
+  const pool = WORDS.filter(x => x.verb !== w.verb && x.meaning !== w.meaning);
+  const distractors = pool.sort(()=>Math.random()-.5).slice(0,3).map(x=>x.meaning);
+  const opts = [w.meaning, ...distractors].sort(()=>Math.random()-.5);
+  const correctIdx = opts.indexOf(w.meaning);
+  container.innerHTML = `
+    <div class="review-header">
+      <span>${reviewIndex+1} / ${reviewQueue.length}</span>
+      <span style="color:${stateColor};font-weight:700">${['未學習','初學中','已認識','已精通'][prog.state]}</span>
+      <span>${w.lang} · ${w.level}</span>
+    </div>
+    <div class="review-progress-track">
+      <div style="width:${pct}%;background:#f07070;height:100%;border-radius:2px;transition:width 0.3s"></div>
+    </div>
+    <div class="review-card-wrap" style="cursor:default;min-height:160px">
+      <span class="card-tag tag-${w.lang}">${w.lang}(${w.level})</span>
+      <div class="review-verb" style="font-size:34px">
+        ${w.verb}
+        <button class="speak-btn" data-t="${w.verb.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" data-l="${w.lang}" onclick="speakFromData(event)" style="display:inline-flex">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#aaa;width:22px;height:22px"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+      </div>
+      <div style="font-size:13px;color:#555;margin-top:6px">選出正確的意思</div>
+    </div>
+    <div class="choice-options" id="choiceOpts">
+      ${opts.map((o,i)=>`<button class="choice-opt" id="copt${i}" onclick="answerChoice(${i},${correctIdx})">${o}</button>`).join('')}
+    </div>
+    <div id="choiceResult" style="text-align:center;min-height:28px;font-size:14px;margin-top:10px"></div>`;
+}
+
+function answerChoice(chosen, correct) {
+  const opts = document.querySelectorAll('.choice-opt');
+  opts.forEach(b => b.disabled = true);
+  const result = document.getElementById('choiceResult');
+  if (chosen === correct) {
+    opts[chosen].classList.add('correct');
+    result.innerHTML = '<span style="color:#70c08a;font-weight:700">✓ 正確！</span>';
+    srsRate(reviewQueue[reviewIndex].verb, 2);
+  } else {
+    opts[chosen].classList.add('wrong');
+    opts[correct].classList.add('reveal');
+    result.innerHTML = '<span style="color:#f07070;font-weight:700">✗ 答錯了</span>';
+    srsRate(reviewQueue[reviewIndex].verb, 0);
+  }
+  // Show example
+  const w = reviewQueue[reviewIndex];
+  result.innerHTML += `<div style="font-size:12px;color:#888;margin-top:6px;font-style:italic">${w.example}</div>`;
+  setTimeout(() => { reviewIndex++; reviewFlipped=false; renderReview(); updateBadge(); }, 1400);
+}
+
+// ── 語音識別模式 ──
+let _voiceRec = null;
+function renderReviewVoice() {
+  const container = document.getElementById('reviewContainer');
+  const w = reviewQueue[reviewIndex];
+  const prog = srsGet(w.verb);
+  const stateColor = ['#555','#e09a2a','#4a9eca','#70c08a'][prog.state];
+  const pct = ((reviewIndex/reviewQueue.length)*100).toFixed(1);
+  const hasSR = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  container.innerHTML = `
+    <div class="review-header">
+      <span>${reviewIndex+1} / ${reviewQueue.length}</span>
+      <span style="color:${stateColor};font-weight:700">${['未學習','初學中','已認識','已精通'][prog.state]}</span>
+      <span>${w.lang} · ${w.level}</span>
+    </div>
+    <div class="review-progress-track">
+      <div style="width:${pct}%;background:#f07070;height:100%;border-radius:2px;transition:width 0.3s"></div>
+    </div>
+    <div class="review-card-wrap" style="cursor:default">
+      <span class="card-tag tag-${w.lang}">${w.lang}(${w.level})</span>
+      <div class="review-verb" style="font-size:34px">${w.verb}</div>
+      <div class="review-meaning" style="font-size:18px;margin-top:0">${w.meaning}</div>
+      ${w.exampleZh ? `<div class="review-ex-zh" style="font-size:12px">${w.exampleZh}</div>` : ''}
+    </div>
+    <div class="voice-area">
+      ${hasSR
+        ? `<button class="voice-mic-btn" id="voiceMicBtn" onclick="startVoice('${w.verb.replace(/'/g,"&#39;")}','${w.lang}')">🎤</button>
+           <div class="voice-hint">點麥克風，唸出這個單字</div>
+           <div class="voice-result" id="voiceResult">等待語音...</div>
+           <div class="voice-verdict" id="voiceVerdict"></div>`
+        : `<div style="color:#888;font-size:14px;padding:20px">此裝置或瀏覽器不支援語音識別<br><small>建議使用 Chrome 或 Safari</small></div>`}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="rating-btn bad" style="flex:1" onclick="rateWord(0)">✗ 不會唸</button>
+      <button class="rating-btn good" style="flex:1" onclick="rateWord(2)">✓ 唸對了</button>
+    </div>`;
+}
+
+function startVoice(word, lang) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  if (_voiceRec) { try { _voiceRec.stop(); } catch(e){} }
+  const langCode = { ES:'es-ES', DE:'de-DE', EN:'en-AU' }[lang] || 'es-ES';
+  _voiceRec = new SR();
+  _voiceRec.lang = langCode;
+  _voiceRec.interimResults = false;
+  _voiceRec.maxAlternatives = 3;
+  const btn = document.getElementById('voiceMicBtn');
+  const resultEl = document.getElementById('voiceResult');
+  const verdictEl = document.getElementById('voiceVerdict');
+  if (btn) btn.classList.add('listening');
+  if (resultEl) resultEl.textContent = '🎙 聆聽中...';
+  _voiceRec.onresult = (e) => {
+    const alts = Array.from(e.results[0]).map(r => r.transcript.trim().toLowerCase());
+    if (resultEl) resultEl.textContent = '聽到：「' + alts[0] + '」';
+    const target = word.toLowerCase().replace(/[¿¡.,!?]/g,'');
+    const match = alts.some(a => {
+      const clean = a.replace(/[¿¡.,!?]/g,'');
+      return clean === target || clean.includes(target) || target.includes(clean) ||
+        levenshtein(clean, target) <= Math.max(1, Math.floor(target.length * 0.3));
+    });
+    if (verdictEl) {
+      verdictEl.textContent = match ? '✓ 發音正確！' : '✗ 再試一次';
+      verdictEl.style.color = match ? '#70c08a' : '#f07070';
+    }
+    if (btn) btn.classList.remove('listening');
+  };
+  _voiceRec.onerror = () => {
+    if (resultEl) resultEl.textContent = '無法辨識，請再試一次';
+    if (btn) btn.classList.remove('listening');
+  };
+  _voiceRec.onend = () => { if (btn) btn.classList.remove('listening'); };
+  _voiceRec.start();
+}
+
+function levenshtein(a, b) {
+  const m=a.length, n=b.length;
+  const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i?j?0:i:j));
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
 }
 
 function flipCard() {
@@ -5475,8 +5896,10 @@ function openModal(verbName, tenseKey, lang) {
   const tense = TENSE_CONFIG.find(t => t.key===tenseKey);
   const persons = getPersons(lang);
   const forms = word.conj[tenseKey]||["-","-","-","-","-","-"];
+  const hasExplain = TENSE_EXPLAIN[tenseKey] && TENSE_EXPLAIN[tenseKey][lang];
   document.getElementById("modalTitle").innerHTML =
     `<span>${verbName}（${tense.name}）</span>
+     ${hasExplain ? `<button class="tense-info-btn" style="color:#a080d0;border-color:#a080d0" onclick="openTenseInfo('${tenseKey}','${lang}')" title="說明">?</button>` : ''}
      <button class="speak-btn" data-t="${verbName.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}" data-l="${lang}" onclick="speakFromData(event)" title="發音">${SPEAK_ICON(20,'#f07070')}</button>`;
   document.getElementById("personsGrid").innerHTML = persons.map((p,i) => {
     const form = forms[i]??"-"; const sp = form!=="-";
@@ -5493,6 +5916,41 @@ function openModal(verbName, tenseKey, lang) {
 
 function closeModal() { document.getElementById("modalOverlay").classList.remove("open"); }
 
+function openTenseInfo(key, lang) {
+  const info = (TENSE_EXPLAIN[key]||{})[lang]; if (!info) return;
+  const ex = info.examples||[];
+  const note = info.note ? `<div class="te-note">📌 ${info.note.replace(/\n/g,'<br>')}</div>` : '';
+  const contrast = info.contrast ? `
+    <div class="te-contrast">
+      <div class="te-contrast-title">${info.contrast.title}</div>
+      ${info.contrast.rows.map(r=>`
+        <div class="te-contrast-row">
+          <div class="te-contrast-label">${r.label}</div>
+          <div class="te-contrast-desc">${r.desc}</div>
+          ${r.ex ? `<div class="te-contrast-ex">${r.ex}</div>` : ''}
+        </div>`).join('')}
+    </div>` : '';
+  document.getElementById('tenseExplainPanel').innerHTML = `
+    <div class="te-title">${info.title}</div>
+    <div class="te-section-label">什麼時候用</div>
+    <ul class="te-when-list">${info.when.map(w=>`<li>${w}</li>`).join('')}</ul>
+    <div class="te-section-label">例句</div>
+    ${ex.map(e=>`<div class="te-example"><div class="te-example-orig">${e.src}</div><div class="te-example-zh">${e.zh}</div></div>`).join('')}
+    ${note}
+    ${contrast}
+    <button class="te-close" onclick="closeTenseExplain()">關閉</button>`;
+  document.getElementById('tenseExplainOverlay').classList.add('open');
+}
+
+function closeTenseExplain() {
+  document.getElementById('tenseExplainOverlay').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tenseExplainOverlay').addEventListener('click', function(e){
+    if (e.target === this) closeTenseExplain();
+  });
+});
+
 document.getElementById("modalOverlay").addEventListener("click", function(e) {
   if (e.target===this) closeModal();
 });
@@ -5508,7 +5966,7 @@ function switchView(view) {
   document.getElementById('newsView').style.display   = view==='news'   ? 'block' : 'none';
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view===view));
   document.querySelector('.top-bar').style.display = view==='cards' ? '' : 'none';
-  if (view==='review') startReview();
+  if (view==='review') { renderReviewTop(); startReview(); }
   if (view==='stats')  renderStats();
   if (view==='news')   renderNewsView();
 }

@@ -5245,21 +5245,24 @@ function closeArticleModal() {
 
 function startQuiz() {
   const n = NEWS[_currentArticleIdx];
-  _quizAnswers = new Array(n.vocab.length).fill(null);
+  // Support both dedicated quiz array and auto-generated from vocab
+  const questions = n.quiz || n.vocab.map(v => {
+    const words = n.vocab.map(x => x.word);
+    const others = words.filter(w => w !== v.word);
+    const distractors = others.sort(()=>Math.random()-.5).slice(0,3);
+    const opts = [v.word, ...distractors].sort(()=>Math.random()-.5);
+    return { sentence: v.example.replace(new RegExp(v.word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i'), '___'), options: opts, answer: opts.indexOf(v.word) };
+  });
+  _quizAnswers = new Array(questions.length).fill(null);
   document.getElementById('amReadView').style.display = 'none';
   document.getElementById('amQuizView').style.display = '';
   document.getElementById('amQuizTitle').textContent = n.title;
-  const words = n.vocab.map(v => v.word);
-  document.getElementById('amQuizBody').innerHTML = n.vocab.map((v, qi) => {
-    const blank = v.example.replace(new RegExp(v.word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i'), '_____');
-    // 4 options: correct + 3 random others
-    const others = words.filter((_,i) => i !== qi);
-    const distractors = others.sort(()=>Math.random()-.5).slice(0,3);
-    const opts = [v.word, ...distractors].sort(()=>Math.random()-.5);
+  document.getElementById('amQuizBody').innerHTML = questions.map((q, qi) => {
+    const blank = q.sentence.replace('___', '<span class="quiz-blank">___</span>');
     return `<div class="quiz-q" id="qq${qi}">
       <div class="quiz-sentence">${qi+1}. ${blank}</div>
       <div class="quiz-options">
-        ${opts.map(o => `<button class="quiz-opt" onclick="selectOpt(${qi},this,'${o.replace(/'/g,"&#39;")}',${JSON.stringify(v.word)})">${o}</button>`).join('')}
+        ${q.options.map((o,oi) => `<button class="quiz-opt" onclick="selectOpt(${qi},this,${oi},${q.answer})">${o}</button>`).join('')}
       </div>
       <div class="quiz-result" id="qr${qi}"></div>
     </div>`;
@@ -5270,8 +5273,8 @@ function startQuiz() {
   document.querySelector('#articleModal .am-panel').scrollTop = 0;
 }
 
-function selectOpt(qi, btn, chosen, correct) {
-  _quizAnswers[qi] = chosen;
+function selectOpt(qi, btn, chosenIdx, correctIdx) {
+  _quizAnswers[qi] = chosenIdx;
   const opts = btn.closest('.quiz-options').querySelectorAll('.quiz-opt');
   opts.forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
@@ -5279,24 +5282,31 @@ function selectOpt(qi, btn, chosen, correct) {
 
 function submitQuiz() {
   const n = NEWS[_currentArticleIdx];
+  const questions = n.quiz || n.vocab.map(v => {
+    const words = n.vocab.map(x => x.word);
+    const others = words.filter(w => w !== v.word);
+    const distractors = others.sort(()=>Math.random()-.5).slice(0,3);
+    const opts = [v.word, ...distractors].sort(()=>Math.random()-.5);
+    return { sentence: v.example, options: opts, answer: opts.indexOf(v.word) };
+  });
   let correct = 0;
-  n.vocab.forEach((v, qi) => {
+  questions.forEach((q, qi) => {
     const chosen = _quizAnswers[qi];
     const opts = document.querySelectorAll(`#qq${qi} .quiz-opt`);
     const res  = document.getElementById(`qr${qi}`);
-    if (!chosen) { res.innerHTML = '<span style="color:#888">未作答</span>'; return; }
-    const isOk = chosen.toLowerCase() === v.word.toLowerCase();
+    if (chosen === null || chosen === undefined) { res.innerHTML = '<span style="color:#888">未作答</span>'; return; }
+    const isOk = chosen === q.answer;
     if (isOk) { correct++; res.innerHTML = '<span style="color:#70c08a">✓ 正確！</span>'; }
-    else { res.innerHTML = `<span style="color:#f07070">✗ 答案是：${v.word}</span>`; }
-    opts.forEach(b => {
-      if (b.textContent.trim() === v.word) b.classList.add('correct');
-      else if (b.classList.contains('selected')) b.classList.add('wrong');
+    else { res.innerHTML = `<span style="color:#f07070">✗ 答案是：${q.options[q.answer]}</span>`; }
+    opts.forEach((b, bi) => {
+      if (bi === q.answer) b.classList.add('correct');
+      else if (bi === chosen) b.classList.add('wrong');
       b.disabled = true;
     });
   });
-  const unanswered = _quizAnswers.filter(a=>a===null).length;
+  const unanswered = _quizAnswers.filter(a=>a===null||a===undefined).length;
   if (unanswered > 0) { alert(`還有 ${unanswered} 題未作答！`); return; }
-  const total = n.vocab.length;
+  const total = questions.length;
   const pct = Math.round(correct/total*100);
   const passed = correct >= Math.ceil(total * 0.7);
   document.getElementById('amQuizActions').innerHTML = `
@@ -5707,6 +5717,222 @@ const NEWS = [
       { word: "transport",  meaning: "交通運輸",       example: "Public transport in Brisbane is convenient.", exampleZh: "布里斯本的公共交通很方便。" },
       { word: "explore",    meaning: "探索",           example: "Brisbane is a great base to explore Queensland.", exampleZh: "布里斯本是探索昆士蘭的好基地。" },
       { word: "network",    meaning: "網絡、系統",     example: "The city has an excellent network of cycle paths.", exampleZh: "這座城市有優秀的自行車路網。" },
+    ]
+  },
+
+  // ── 6. 科技新知（西文）──
+  {
+    category: "科技新知", date: "2026-04", lang: "ES",
+    title: "La inteligencia artificial cambia el trabajo",
+    teaser: "機器人真的要搶走我們的工作嗎？看看 AI 如何正在改變職場生態，哪些職業最受影響，又有哪些新機會正在誕生。",
+    article: "La inteligencia artificial (IA) está transformando el mercado laboral en todo el mundo. Según un informe reciente, más del 40% de los trabajos actuales podrían verse afectados por la automatización en los próximos diez años.\n\nEn el sector de servicios, los chatbots ya responden preguntas básicas de los clientes. En la industria, los robots realizan tareas repetitivas con mayor precisión y velocidad. Sin embargo, los expertos señalan que la IA también crea nuevas oportunidades.\n\nLas profesiones que requieren creatividad, empatía y pensamiento crítico son menos vulnerables. Médicos, profesores, trabajadores sociales y artistas siguen siendo difíciles de reemplazar.\n\nPara adaptarse, los trabajadores deben actualizar sus habilidades constantemente. El aprendizaje de idiomas, la programación básica y la inteligencia emocional son competencias muy valoradas en el mercado laboral del futuro.\n\nEn Australia, el gobierno invierte en programas de formación digital para ayudar a los trabajadores a adaptarse a los cambios tecnológicos. Brisbane, como ciudad del futuro, busca perfiles bilingües y con competencias digitales.",
+    quiz: [
+      { sentence: "La IA está ___ el mercado laboral.", options: ["transformando","comiendo","cantando","dormiendo"], answer: 0 },
+      { sentence: "Los chatbots responden preguntas ___ de los clientes.", options: ["básicas","difíciles","imposibles","secretas"], answer: 0 },
+      { sentence: "Las profesiones que requieren ___ son menos vulnerables.", options: ["creatividad","rapidez","dinero","fuerza"], answer: 0 },
+      { sentence: "Los trabajadores deben actualizar sus ___ constantemente.", options: ["habilidades","zapatos","maletas","menús"], answer: 0 },
+      { sentence: "Brisbane busca perfiles ___ y con competencias digitales.", options: ["bilingües","aburridos","perezosos","antiguos"], answer: 0 }
+    ],
+    vocab: [
+      { word: "la inteligencia artificial", meaning: "人工智慧", example: "La inteligencia artificial cambia muchos trabajos.", exampleZh: "人工智慧改變了很多工作。" },
+      { word: "la automatización", meaning: "自動化", example: "La automatización afecta al sector industrial.", exampleZh: "自動化影響了工業部門。" },
+      { word: "el chatbot", meaning: "聊天機器人", example: "El chatbot responde preguntas simples.", exampleZh: "聊天機器人回答簡單問題。" },
+      { word: "la empatía", meaning: "同理心", example: "La empatía es una habilidad humana esencial.", exampleZh: "同理心是基本的人類能力。" },
+      { word: "vulnerable", meaning: "脆弱的、易受影響的", example: "Algunos trabajos son más vulnerables a la IA.", exampleZh: "某些工作更容易受AI影響。" },
+      { word: "reemplazar", meaning: "取代", example: "Los robots no pueden reemplazar la creatividad.", exampleZh: "機器人無法取代創造力。" },
+      { word: "actualizar", meaning: "更新、升級", example: "Debo actualizar mis habilidades digitales.", exampleZh: "我必須更新數位技能。" },
+      { word: "la competencia", meaning: "能力、競爭", example: "El inglés es una competencia muy valorada.", exampleZh: "英語是非常受重視的能力。" },
+      { word: "la formación", meaning: "培訓、教育", example: "El gobierno ofrece formación digital gratuita.", exampleZh: "政府提供免費數位培訓。" },
+      { word: "bilingüe", meaning: "雙語的", example: "Ser bilingüe es una ventaja laboral.", exampleZh: "具備雙語能力是職場優勢。" }
+    ]
+  },
+
+  // ── 7. 金融商業（德文）──
+  {
+    category: "金融商業", date: "2026-04", lang: "DE",
+    title: "Geld sparen als junger Erwachsener",
+    teaser: "在物價飆漲的年代，年輕人該如何聰明存錢？這篇德文短文介紹幾個實用的理財方法，讓你出發去澳洲前荷包更充實。",
+    article: "Für viele junge Erwachsene ist das Sparen eine große Herausforderung. Die Mieten steigen, die Lebensmittelpreise sind hoch, und trotzdem möchten viele reisen oder im Ausland leben.\n\nExperten empfehlen die 50-30-20-Regel: 50 Prozent des Einkommens für Notwendiges wie Miete und Essen, 30 Prozent für Freizeit und Wünsche, und 20 Prozent direkt auf ein Sparkonto.\n\nEin weiterer Tipp ist das Führen eines Haushaltsbuchs. Wer seine Ausgaben aufschreibt, erkennt schnell, wo er zu viel Geld ausgibt. Viele Apps helfen dabei, die Finanzen im Blick zu behalten.\n\nFür Reisepläne empfiehlt es sich, frühzeitig zu buchen. Flüge und Unterkünfte sind oft günstiger, wenn man sie Monate im Voraus reserviert.\n\nIn Australien ist der Mindestlohn deutlich höher als in Deutschland oder Taiwan. Wer dort arbeitet, kann schnell Geld sparen. Für eine Working-Holiday in Brisbane braucht man am Anfang etwa 3000 bis 5000 Euro als Startkapital.",
+    quiz: [
+      { sentence: "Die ___ steigen und machen das Sparen schwierig.", options: ["Mieten","Sprachen","Restaurants","Flüge"], answer: 0 },
+      { sentence: "20 Prozent des Einkommens sollte man auf ein ___ legen.", options: ["Sparkonto","Restaurant","Flugzeug","Buch"], answer: 0 },
+      { sentence: "Ein Haushaltsbuch hilft, die ___ im Blick zu behalten.", options: ["Finanzen","Sprachen","Freunde","Reisen"], answer: 0 },
+      { sentence: "Flüge sind oft günstiger, wenn man ___ bucht.", options: ["frühzeitig","spät","nie","zufällig"], answer: 0 },
+      { sentence: "Für eine Working-Holiday braucht man etwa 3000 bis 5000 Euro als ___.", options: ["Startkapital","Gehalt","Rabatt","Urlaub"], answer: 0 }
+    ],
+    vocab: [
+      { word: "sparen", meaning: "存錢、節省", example: "Ich spare jeden Monat 20 Prozent meines Gehalts.", exampleZh: "我每月存薪水的20%。" },
+      { word: "das Einkommen", meaning: "收入", example: "Mein Einkommen reicht nicht für alles.", exampleZh: "我的收入不夠支付一切。" },
+      { word: "die Ausgaben", meaning: "支出（複數）", example: "Ich kontrolliere meine Ausgaben jeden Monat.", exampleZh: "我每月控制支出。" },
+      { word: "das Sparkonto", meaning: "儲蓄帳戶", example: "Ich lege Geld auf mein Sparkonto.", exampleZh: "我把錢存入儲蓄帳戶。" },
+      { word: "das Haushaltsbuch", meaning: "家庭帳簿、記帳本", example: "Ein Haushaltsbuch hilft beim Sparen.", exampleZh: "帳簿有助於存錢。" },
+      { word: "der Mindestlohn", meaning: "最低工資", example: "In Australien ist der Mindestlohn sehr hoch.", exampleZh: "澳洲的最低工資非常高。" },
+      { word: "das Startkapital", meaning: "啟動資金", example: "Ich brauche Startkapital für Australien.", exampleZh: "我需要去澳洲的啟動資金。" },
+      { word: "günstig", meaning: "便宜的、划算的", example: "Frühbucher bekommen günstige Flugpreise.", exampleZh: "早鳥訂票可獲得便宜機票。" },
+      { word: "frühzeitig", meaning: "提早地", example: "Ich buche frühzeitig, um zu sparen.", exampleZh: "我提早訂票以節省費用。" },
+      { word: "der Tipp", meaning: "建議、訣竅", example: "Hast du Tipps zum Geldsparen?", exampleZh: "你有存錢的建議嗎？" }
+    ]
+  },
+
+  // ── 8. 醫療健康（英文）──
+  {
+    category: "醫療健康", date: "2026-04", lang: "EN",
+    title: "Mental health in the modern workplace",
+    teaser: "工作壓力大到讓人喘不過氣？越來越多企業開始重視員工心理健康，這篇英文文章帶你了解職場心理健康的現況與因應之道。",
+    article: "Mental health in the workplace has become one of the most important topics in modern business. Studies show that stress, burnout, and anxiety affect millions of workers worldwide, reducing productivity and increasing staff turnover.\n\nBurnout is a state of chronic stress that leads to physical and emotional exhaustion. Common signs include constant tiredness, lack of motivation, and difficulty concentrating. The hospitality industry, which includes restaurants and hotels, is one of the sectors with the highest burnout rates.\n\nMany companies now offer employee assistance programmes, which provide counselling and mental health support. Flexible working hours and the option to work remotely have also helped reduce stress levels for many workers.\n\nPsychologists recommend several strategies for maintaining good mental health at work. These include setting clear boundaries between work and personal life, taking regular breaks, and communicating openly with managers about workload.\n\nIn Australia, mental health awareness has grown significantly in recent years. The government runs campaigns such as Beyond Blue, which provides resources for people struggling with anxiety and depression. Brisbane has a growing network of community mental health services.",
+    quiz: [
+      { sentence: "Burnout is a state of chronic ___ that leads to exhaustion.", options: ["stress","happiness","success","energy"], answer: 0 },
+      { sentence: "The hospitality industry has one of the highest ___ rates.", options: ["burnout","profit","tourism","language"], answer: 0 },
+      { sentence: "Companies offer employee ___ programmes with counselling.", options: ["assistance","cooking","travel","discount"], answer: 0 },
+      { sentence: "___ working hours have helped reduce stress.", options: ["Flexible","Longer","Unpaid","Weekend"], answer: 0 },
+      { sentence: "Psychologists recommend setting clear ___ between work and personal life.", options: ["boundaries","salaries","uniforms","menus"], answer: 0 }
+    ],
+    vocab: [
+      { word: "mental health", meaning: "心理健康", example: "Mental health is as important as physical health.", exampleZh: "心理健康與身體健康同樣重要。" },
+      { word: "burnout", meaning: "職業倦怠、過勞", example: "She suffered from burnout after working long hours.", exampleZh: "長時間工作後她過勞了。" },
+      { word: "anxiety", meaning: "焦慮", example: "He experiences anxiety before important meetings.", exampleZh: "重要會議前他感到焦慮。" },
+      { word: "productivity", meaning: "生產力", example: "Stress can seriously reduce productivity.", exampleZh: "壓力會嚴重降低生產力。" },
+      { word: "counselling", meaning: "心理輔導", example: "The company offers free counselling to all staff.", exampleZh: "公司為所有員工提供免費心理輔導。" },
+      { word: "boundary", meaning: "界線", example: "Setting work-life boundaries is essential.", exampleZh: "設定工作與生活的界線至關重要。" },
+      { word: "exhaustion", meaning: "精疲力竭", example: "Physical exhaustion affects concentration.", exampleZh: "身體疲憊影響專注力。" },
+      { word: "workload", meaning: "工作量", example: "My workload increased a lot this month.", exampleZh: "我這個月的工作量大幅增加。" },
+      { word: "awareness", meaning: "意識、認知", example: "Mental health awareness is growing worldwide.", exampleZh: "全球對心理健康的意識正在提升。" },
+      { word: "depression", meaning: "憂鬱症、抑鬱", example: "Depression can affect anyone at any age.", exampleZh: "憂鬱症可能影響任何年齡的人。" }
+    ]
+  },
+
+  // ── 9. 社會福利（西文）──
+  {
+    category: "社會福利", date: "2026-04", lang: "ES",
+    title: "El sistema de bienestar social en Australia",
+    teaser: "去澳洲工作前，你知道當地有哪些社會福利嗎？從醫療保險到失業救濟，這篇西文短文帶你認識澳洲完善的社會安全網。",
+    article: "Australia tiene uno de los sistemas de bienestar social más completos del mundo. El gobierno ofrece una amplia gama de servicios y prestaciones para proteger a sus ciudadanos y residentes permanentes.\n\nEl sistema de salud pública, llamado Medicare, cubre la mayoría de los gastos médicos. Los residentes pueden visitar a un médico de cabecera o ir a un hospital público sin pagar directamente. Este sistema está financiado por un impuesto del 2% sobre los ingresos.\n\nPara las personas que pierden su empleo, existe el programa Jobseeker Payment, una ayuda económica mientras buscan trabajo. También hay apoyo para familias con hijos, personas mayores y personas con discapacidad.\n\nEn cuanto a las pensiones, los trabajadores australianos tienen derecho a la Superannuation, un fondo de jubilación obligatorio al que el empleador contribuye con un porcentaje del sueldo.\n\nSin embargo, los trabajadores con visa de turismo o Working Holiday no tienen acceso a todos estos beneficios. Es importante conocer los derechos según el tipo de visa antes de viajar a Australia.",
+    quiz: [
+      { sentence: "El sistema de salud pública en Australia se llama ___.", options: ["Medicare","Jobseeker","Superannuation","Centrelink"], answer: 0 },
+      { sentence: "Medicare está financiado por un ___ del 2% sobre los ingresos.", options: ["impuesto","regalo","descuento","préstamo"], answer: 0 },
+      { sentence: "El programa Jobseeker ayuda a personas que pierden su ___.", options: ["empleo","casa","familia","idioma"], answer: 0 },
+      { sentence: "La Superannuation es un fondo de ___ obligatorio.", options: ["jubilación","estudios","viajes","salud"], answer: 0 },
+      { sentence: "Los trabajadores con visa Working Holiday no tienen ___ a todos los beneficios.", options: ["acceso","dinero","trabajo","idioma"], answer: 0 }
+    ],
+    vocab: [
+      { word: "el bienestar social", meaning: "社會福利", example: "El bienestar social protege a los más vulnerables.", exampleZh: "社會福利保護最脆弱的人。" },
+      { word: "la prestación", meaning: "津貼、補助", example: "Recibo una prestación por desempleo.", exampleZh: "我領取失業補助。" },
+      { word: "el seguro médico", meaning: "醫療保險", example: "El seguro médico cubre los gastos del hospital.", exampleZh: "醫療保險覆蓋住院費用。" },
+      { word: "el impuesto", meaning: "稅", example: "Todos pagamos impuestos al gobierno.", exampleZh: "我們都向政府繳稅。" },
+      { word: "la jubilación", meaning: "退休", example: "Mi madre tiene pensión de jubilación.", exampleZh: "我媽媽有退休金。" },
+      { word: "el empleador", meaning: "雇主", example: "El empleador paga una parte de la jubilación.", exampleZh: "雇主支付部分退休金。" },
+      { word: "la discapacidad", meaning: "身心障礙", example: "El gobierno apoya a personas con discapacidad.", exampleZh: "政府支持身心障礙人士。" },
+      { word: "el fondo", meaning: "基金", example: "El fondo de jubilación crece con los años.", exampleZh: "退休基金隨年月增長。" },
+      { word: "los derechos", meaning: "權利", example: "Es importante conocer tus derechos laborales.", exampleZh: "了解你的勞工權利很重要。" },
+      { word: "el beneficio", meaning: "福利、好處", example: "Los beneficios dependen del tipo de visa.", exampleZh: "福利取決於簽證種類。" }
+    ]
+  },
+
+  // ── 10. 娛樂文化（德文）──
+  {
+    category: "娛樂文化", date: "2026-04", lang: "DE",
+    title: "Streaming und Kultur: Wie wir Medien konsumieren",
+    teaser: "你是 Netflix 還是 Spotify 重度用戶？串流媒體徹底改變了我們消費文化的方式。這篇德文短文帶你看看媒體消費的現況與趨勢。",
+    article: "Streaming-Dienste haben die Art und Weise, wie wir Filme, Serien und Musik konsumieren, völlig verändert. Plattformen wie Netflix, Spotify und YouTube haben die traditionellen Medien wie Fernsehen und Radio weitgehend ersetzt.\n\nIn Deutschland nutzen über 70 Prozent der Bevölkerung regelmäßig Streaming-Dienste. Besonders bei jungen Erwachsenen zwischen 18 und 35 Jahren ist das Streaming sehr beliebt. Viele schauen keine klassischen Fernsehsendungen mehr.\n\nEin wichtiger Trend ist der Erfolg von nicht-englischsprachigen Inhalten. Deutsche Serien wie Dark oder Babylon Berlin haben weltweit Millionen von Zuschauern gefunden. Auch spanische Serien wie La Casa de Papel sind international sehr erfolgreich.\n\nFür Sprachenlerner ist Streaming eine großartige Ressource. Man kann Serien in der Originalsprache mit Untertiteln schauen und so das Hörverständnis verbessern. Podcasts auf Spotify sind auch ein beliebtes Werkzeug für das Sprachenlernen.\n\nAllerdings warnen Experten vor zu viel Bildschirmzeit. Mehr als vier Stunden täglich vor einem Bildschirm können die Schlafqualität und die Konzentration negativ beeinflussen.",
+    quiz: [
+      { sentence: "Streaming-Dienste haben die traditionellen Medien weitgehend ___.", options: ["ersetzt","gekauft","gefilmt","gelöscht"], answer: 0 },
+      { sentence: "Über ___ Prozent der deutschen Bevölkerung nutzen Streaming regelmäßig.", options: ["70","10","50","90"], answer: 0 },
+      { sentence: "Deutsche Serien haben ___ von Zuschauern weltweit gefunden.", options: ["Millionen","Hundert","Tausend","Wenige"], answer: 0 },
+      { sentence: "Man kann das Hörverständnis mit Serien in der ___ verbessern.", options: ["Originalsprache","Schule","Küche","Bücherei"], answer: 0 },
+      { sentence: "Zu viel ___ kann die Schlafqualität negativ beeinflussen.", options: ["Bildschirmzeit","Wasser","Sport","Schlaf"], answer: 0 }
+    ],
+    vocab: [
+      { word: "der Streaming-Dienst", meaning: "串流服務", example: "Ich nutze täglich Streaming-Dienste.", exampleZh: "我每天使用串流服務。" },
+      { word: "konsumieren", meaning: "消費、消耗", example: "Wir konsumieren immer mehr digitale Inhalte.", exampleZh: "我們消費越來越多數位內容。" },
+      { word: "die Sendung", meaning: "節目", example: "Meine Lieblingssendung läuft am Freitag.", exampleZh: "我最喜歡的節目在週五播出。" },
+      { word: "der Zuschauer", meaning: "觀眾", example: "Die Serie hat Millionen Zuschauer.", exampleZh: "這部影集有數百萬觀眾。" },
+      { word: "der Untertitel", meaning: "字幕", example: "Ich schaue Serien mit deutschen Untertiteln.", exampleZh: "我看附有德語字幕的影集。" },
+      { word: "das Hörverständnis", meaning: "聽力理解", example: "Podcasts verbessern das Hörverständnis.", exampleZh: "播客可以提升聽力理解。" },
+      { word: "die Bildschirmzeit", meaning: "螢幕使用時間", example: "Zu viel Bildschirmzeit ist ungesund.", exampleZh: "過多螢幕時間對健康有害。" },
+      { word: "ersetzen", meaning: "取代", example: "Streaming hat das klassische Fernsehen ersetzt.", exampleZh: "串流取代了傳統電視。" },
+      { word: "beliebt", meaning: "受歡迎的", example: "Spotify ist bei Jugendlichen sehr beliebt.", exampleZh: "Spotify在年輕人中非常受歡迎。" },
+      { word: "die Ressource", meaning: "資源", example: "Serien sind eine gute Ressource zum Lernen.", exampleZh: "影集是學習的好資源。" }
+    ]
+  },
+
+  // ── 11. 長照政策（英文）──
+  {
+    category: "長照政策", date: "2026-04", lang: "EN",
+    title: "Ageing populations and long-term care",
+    teaser: "當嬰兒潮世代步入老年，誰來照顧他們？長照問題正成為全球政策焦點，這篇英文文章帶你了解相關議題與挑戰。",
+    article: "As the global population ages, long-term care for elderly people has become one of the most pressing policy challenges of the 21st century. In Japan, Australia, and many European countries, the proportion of people over 65 is growing rapidly.\n\nLong-term care refers to a range of services that support people who have difficulty performing daily activities due to age, illness, or disability. These services can be provided at home, in residential care facilities, or in specialised nursing homes.\n\nOne of the biggest challenges is the shortage of care workers. Many countries are experiencing a significant gap between the demand for care services and the number of qualified staff available. Migrants and internationally trained nurses play an increasingly important role in filling this gap.\n\nIn Australia, the aged care sector employs over 360,000 workers. The government recently introduced a series of reforms following the Royal Commission into Aged Care Quality and Safety, which revealed serious problems including neglect and poor nutrition in some facilities.\n\nFor young people considering a career in healthcare or social work, aged care offers stable employment with growing demand. Language skills, particularly English and other languages spoken by elderly migrants, are highly valued in this sector.",
+    quiz: [
+      { sentence: "Long-term care supports people who have difficulty with ___ activities.", options: ["daily","illegal","dangerous","technical"], answer: 0 },
+      { sentence: "Many countries face a ___ of care workers.", options: ["shortage","surplus","festival","celebration"], answer: 0 },
+      { sentence: "Migrants play an increasingly important role in ___ the gap.", options: ["filling","creating","ignoring","hiding"], answer: 0 },
+      { sentence: "Australia's aged care sector employs over ___ workers.", options: ["360,000","3,000","36,000","3,600,000"], answer: 0 },
+      { sentence: "___ skills are highly valued in the aged care sector.", options: ["Language","Cooking","Driving","Singing"], answer: 0 }
+    ],
+    vocab: [
+      { word: "long-term care", meaning: "長期照護", example: "Long-term care supports elderly and disabled people.", exampleZh: "長期照護支持老年人和身障人士。" },
+      { word: "elderly", meaning: "年長的、老年人", example: "The elderly population is growing worldwide.", exampleZh: "全球老年人口正在增長。" },
+      { word: "nursing home", meaning: "安養院", example: "Her grandmother lives in a nursing home.", exampleZh: "她的祖母住在安養院。" },
+      { word: "shortage", meaning: "短缺", example: "There is a serious shortage of care workers.", exampleZh: "護理人員嚴重短缺。" },
+      { word: "neglect", meaning: "忽視、疏失", example: "Neglect in care homes is a serious issue.", exampleZh: "安養機構中的疏失是嚴重問題。" },
+      { word: "reform", meaning: "改革", example: "The government introduced aged care reforms.", exampleZh: "政府推出了長照改革。" },
+      { word: "qualified", meaning: "有資格的、合格的", example: "We need more qualified nursing staff.", exampleZh: "我們需要更多合格的護理人員。" },
+      { word: "residential", meaning: "住宅的、居家的", example: "Residential care provides 24-hour support.", exampleZh: "住宿式照護提供全天候支援。" },
+      { word: "proportion", meaning: "比例", example: "The proportion of elderly people is rising.", exampleZh: "老年人口的比例正在上升。" },
+      { word: "disability", meaning: "身心障礙", example: "Services exist for people with disabilities.", exampleZh: "有為身心障礙人士提供的服務。" }
+    ]
+  },
+
+  // ── 12. 政治角力（西文）──
+  {
+    category: "政治角力", date: "2026-04", lang: "ES",
+    title: "Las elecciones y la democracia en el siglo XXI",
+    teaser: "選舉到底在選什麼？民主正面臨哪些挑戰？從假新聞到選民冷漠，這篇西文短文帶你了解當代民主政治的核心議題。",
+    article: "La democracia es el sistema político más extendido en el mundo, pero también enfrenta grandes desafíos en el siglo XXI. Las elecciones son el mecanismo fundamental por el que los ciudadanos eligen a sus representantes.\n\nUno de los mayores problemas actuales es la desinformación. Las redes sociales permiten que noticias falsas se difundan rápidamente, lo que dificulta que los votantes tomen decisiones informadas. Varios países han aprobado leyes para regular el contenido político en internet.\n\nOtro desafío es la abstención electoral. En muchos países, especialmente entre los jóvenes, la participación en las elecciones es cada vez menor. Los politólogos señalan que esto refleja una falta de confianza en las instituciones políticas.\n\nEn América Latina, la polarización política es un fenómeno preocupante. Partidos de izquierda y de derecha se enfrentan con posiciones cada vez más extremas, lo que dificulta el diálogo y los acuerdos.\n\nSin embargo, también hay señales positivas. Los movimientos sociales, especialmente los liderados por jóvenes, han conseguido importantes cambios políticos en países como Chile, Colombia y España. La participación ciudadana no se limita a votar, sino que incluye protestas, peticiones y activismo digital.",
+    quiz: [
+      { sentence: "Las ___ son el mecanismo fundamental de la democracia.", options: ["elecciones","guerras","huelgas","fiestas"], answer: 0 },
+      { sentence: "Las redes sociales permiten que ___ falsas se difundan rápidamente.", options: ["noticias","canciones","recetas","fotos"], answer: 0 },
+      { sentence: "La ___ electoral refleja falta de confianza en las instituciones.", options: ["abstención","participación","victoria","campaña"], answer: 0 },
+      { sentence: "La ___ política dificulta el diálogo entre partidos.", options: ["polarización","cooperación","unión","celebración"], answer: 0 },
+      { sentence: "La participación ciudadana incluye protestas, peticiones y ___ digital.", options: ["activismo","turismo","comercio","entretenimiento"], answer: 0 }
+    ],
+    vocab: [
+      { word: "la democracia", meaning: "民主", example: "La democracia requiere ciudadanos informados.", exampleZh: "民主需要有知識的公民。" },
+      { word: "las elecciones", meaning: "選舉", example: "Las elecciones son cada cuatro años.", exampleZh: "選舉每四年舉行一次。" },
+      { word: "la desinformación", meaning: "錯誤資訊、假新聞", example: "La desinformación daña la democracia.", exampleZh: "假新聞損害民主。" },
+      { word: "el votante", meaning: "選民", example: "Los jóvenes votantes piden más cambios.", exampleZh: "年輕選民要求更多改變。" },
+      { word: "la abstención", meaning: "棄權、不投票", example: "La abstención aumentó en las últimas elecciones.", exampleZh: "上次選舉的棄權率上升了。" },
+      { word: "la polarización", meaning: "兩極化", example: "La polarización política divide a la sociedad.", exampleZh: "政治兩極化分裂了社會。" },
+      { word: "el partido", meaning: "政黨", example: "Hay partidos de izquierda y de derecha.", exampleZh: "有左翼和右翼政黨。" },
+      { word: "el acuerdo", meaning: "協議、共識", example: "Es difícil llegar a un acuerdo político.", exampleZh: "很難達成政治共識。" },
+      { word: "el activismo", meaning: "行動主義", example: "El activismo digital tiene mucha influencia.", exampleZh: "數位行動主義影響力很大。" },
+      { word: "la petición", meaning: "請願", example: "Firmé una petición en línea.", exampleZh: "我在網上簽署了一份請願書。" }
+    ]
+  },
+
+  // ── 13. 旅遊體驗（德文）──
+  {
+    category: "旅遊體驗", date: "2026-04", lang: "DE",
+    title: "Australien: Traumreiseziel für junge Deutsche",
+    teaser: "對德國年輕人來說，澳洲是夢想旅遊地之一。從大堡礁到悉尼歌劇院，澳洲有太多值得一探究竟的地方。這篇短文帶你認識澳洲旅遊。",
+    article: "Australien ist eines der beliebtesten Reiseziele für deutsche Jugendliche und junge Erwachsene. Jedes Jahr reisen Tausende von Deutschen mit einem Working-Holiday-Visum nach Down Under.\n\nDas Land bietet eine unglaubliche Vielfalt: Im Norden lockt das Great Barrier Reef mit seinen bunten Korallenriffen und tropischen Fischen. Im Süden findet man lebhafte Großstädte wie Sydney und Melbourne. In der Mitte liegt das rote Outback mit dem berühmten Uluru-Felsen.\n\nBrisbane, die Hauptstadt von Queensland, wird als sonnige und entspannte Stadt beschrieben. Das Wetter ist fast das ganze Jahr über warm und angenehm. Die Stadt bereitet sich auf die Olympischen Spiele 2032 vor und entwickelt sich rasant.\n\nFür Deutschsprachige ist Australien auch sprachlich interessant. Australisches Englisch hat einen unverwechselbaren Akzent und viele einzigartige Ausdrücke. Wörter wie mate für Freund oder arvo für Nachmittag sind typisch australisch.\n\nDie Lebenshaltungskosten in Australien sind höher als in Deutschland, aber die Löhne sind entsprechend höher. Wer fleißig arbeitet und spart, kann am Ende mit genug Geld für die Heimreise und vielleicht sogar mehr zurückkommen.",
+    quiz: [
+      { sentence: "Das Great Barrier Reef liegt im ___ Australiens.", options: ["Norden","Süden","Westen","Osten"], answer: 0 },
+      { sentence: "Brisbane bereitet sich auf die Olympischen Spiele ___ vor.", options: ["2032","2024","2028","2036"], answer: 0 },
+      { sentence: "Das australische Englisch hat einen unverwechselbaren ___.", options: ["Akzent","Fehler","Dialekt","Roman"], answer: 0 },
+      { sentence: "Das Wort mate bedeutet auf Australisch ___.", options: ["Freund","Arbeit","Essen","Haus"], answer: 0 },
+      { sentence: "Die ___ in Australien sind höher als in Deutschland.", options: ["Löhne","Schulen","Temperaturen","Sprachen"], answer: 0 }
+    ],
+    vocab: [
+      { word: "das Reiseziel", meaning: "旅遊目的地", example: "Australien ist ein beliebtes Reiseziel.", exampleZh: "澳洲是熱門旅遊目的地。" },
+      { word: "die Vielfalt", meaning: "多樣性", example: "Australien bietet eine große landschaftliche Vielfalt.", exampleZh: "澳洲擁有豐富的景觀多樣性。" },
+      { word: "das Korallenriff", meaning: "珊瑚礁", example: "Das Great Barrier Reef ist das größte Korallenriff.", exampleZh: "大堡礁是最大的珊瑚礁。" },
+      { word: "das Outback", meaning: "澳洲內陸荒野", example: "Das Outback ist sehr heiß und trocken.", exampleZh: "澳洲內陸非常炎熱乾燥。" },
+      { word: "entspannt", meaning: "輕鬆的、悠閒的", example: "Brisbane ist eine entspannte Stadt.", exampleZh: "布里斯本是一座悠閒的城市。" },
+      { word: "die Lebenshaltungskosten", meaning: "生活費用", example: "Die Lebenshaltungskosten in Australien sind hoch.", exampleZh: "澳洲的生活費用很高。" },
+      { word: "fleißig", meaning: "勤奮的", example: "Wer fleißig arbeitet, kann viel sparen.", exampleZh: "勤奮工作的人可以存很多錢。" },
+      { word: "unverwechselbar", meaning: "獨特的、不可混淆的", example: "Der australische Akzent ist unverwechselbar.", exampleZh: "澳洲口音是獨特的。" },
+      { word: "sich entwickeln", meaning: "發展、成長", example: "Brisbane entwickelt sich sehr schnell.", exampleZh: "布里斯本發展非常迅速。" },
+      { word: "der Lohn", meaning: "工資", example: "Der Lohn in Australien ist sehr gut.", exampleZh: "澳洲的工資非常好。" }
     ]
   },
 ];

@@ -10,6 +10,10 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>動詞變化複習</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -738,11 +742,81 @@
   .quiz-result { font-size:13px; margin-top:6px; font-weight:600; }
   .quiz-score { text-align:center; padding:20px; font-size:18px; font-weight:700; color:#f0e8ff; }
   .quiz-score-sub { font-size:13px; color:#888; margin-top:6px; }
+
+  /* ── Gmail 登入頁面 ── */
+  .login-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(18,18,40,0.97); z-index: 9999;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .login-overlay.open { display: flex; }
+  .login-card {
+    background: #252540; border-radius: 24px; padding: 40px 28px 32px;
+    width: 100%; max-width: 340px; text-align: center;
+    animation: popIn 0.25s ease;
+  }
+  .login-app-icon {
+    width: 72px; height: 72px; border-radius: 20px;
+    background: linear-gradient(135deg,#5a3a8a,#3a2e6a);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 36px; margin-bottom: 16px;
+  }
+  .google-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 14px 20px; border-radius: 14px; border: none;
+    background: #fff; color: #333; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s; -webkit-tap-highlight-color:transparent;
+  }
+  .google-btn:hover { opacity: 0.92; }
+  .google-btn:active { opacity: 0.8; }
+  .login-skip-btn {
+    background: none; border: none; color: #555; font-size: 13px;
+    cursor: pointer; margin-top: 14px; display: block; width: 100%;
+    text-align: center; padding: 6px;
+  }
+  /* ── 用戶頭像 chip ── */
+  .user-chip {
+    display: none; align-items: center; gap: 6px;
+    padding: 5px 10px 5px 5px; border-radius: 20px;
+    background: #1e1e38; cursor: pointer;
+    float: right; margin-top: 6px; margin-left: 8px;
+  }
+  .user-chip img {
+    width: 26px; height: 26px; border-radius: 50%; display: block;
+  }
+  .user-chip-name {
+    font-size: 12px; color: #c0b0e8; max-width: 70px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .user-chip-signout {
+    background: none; border: none; color: #666; font-size: 11px;
+    cursor: pointer; padding: 0 0 0 4px;
+  }
 </style>
 </head>
 <body>
 
+<!-- ══ Gmail 登入覆蓋層 ══ -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <div class="login-app-icon">📚</div>
+    <h2 style="color:#f0e8ff;font-size:21px;font-weight:700;margin-bottom:8px">單字卡學習</h2>
+    <p style="color:#888;font-size:14px;margin-bottom:28px;line-height:1.7">登入 Gmail 帳號<br>電腦與手機自動同步學習進度</p>
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      使用 Google 帳號登入
+    </button>
+    <button class="login-skip-btn" onclick="skipLogin()">暫不登入（只存在這台裝置）</button>
+  </div>
+</div>
+
 <div class="top-bar">
+  <div id="userChip" class="user-chip"></div>
   <input class="search-input" type="text" id="searchInput" placeholder="搜尋單字、時態或意思...">
   <div class="filter-row">
     <button class="filter-btn active" data-lang="ALL">全部</button>
@@ -5066,8 +5140,124 @@ function srsLoad() {
   try { return JSON.parse(localStorage.getItem(SRS_KEY)) || {words:{},lastStudy:null,todayReviewed:[]}; }
   catch { return {words:{},lastStudy:null,todayReviewed:[]}; }
 }
-function srsSave(d) { localStorage.setItem(SRS_KEY, JSON.stringify(d)); }
+function srsSave(d) {
+  localStorage.setItem(SRS_KEY, JSON.stringify(d));
+  saveToCloud(d);
+}
 function srsGet(verb) { return srsLoad().words[verb] || {interval:0,ef:2.5,reps:0,state:0,nextReview:null}; }
+
+// ════════════════════════════════════════════
+// Firebase / Gmail 登入 & 雲端同步
+// ════════════════════════════════════════════
+//
+// 設定步驟：
+//  1. 前往 https://console.firebase.google.com
+//  2. 建立新專案 → 新增 Web App → 複製 firebaseConfig 內容
+//  3. Authentication → Sign-in method → Google → 啟用
+//  4. Firestore Database → 建立資料庫 → 選 "test mode"
+//  5. 將下方 FIREBASE_CONFIG 的各欄位換成你的專案設定
+//
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+let _fbAuth = null, _fbDb = null, _currentUser = null, _cloudTimer = null;
+
+function initAuth() {
+  if (!window.firebase) return;
+  if (!FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY') {
+    // Firebase 未設定：直接顯示登入頁（告知使用者要設定）
+    // 改為靜默略過，app 正常使用
+    return;
+  }
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _fbAuth = firebase.auth();
+    _fbDb   = firebase.firestore();
+    _fbAuth.onAuthStateChanged(user => {
+      _currentUser = user;
+      if (user) {
+        document.getElementById('loginOverlay').classList.remove('open');
+        _renderUserChip(user);
+        loadFromCloud(user.uid);
+      } else {
+        document.getElementById('loginOverlay').classList.add('open');
+        _clearUserChip();
+      }
+    });
+  } catch(e) {
+    console.warn('[Auth] 初始化失敗', e);
+  }
+}
+
+function signInWithGoogle() {
+  if (!_fbAuth) { alert('Firebase 尚未設定，請參考 vocab.html 內的設定步驟。'); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  _fbAuth.signInWithPopup(provider).catch(err => {
+    console.warn('[Auth] 登入失敗', err);
+    alert('登入失敗：' + (err.message || err));
+  });
+}
+
+function doSignOut() {
+  if (!_fbAuth) return;
+  _fbAuth.signOut();
+}
+
+function skipLogin() {
+  document.getElementById('loginOverlay').classList.remove('open');
+}
+
+function saveToCloud(srsData) {
+  if (!_currentUser || !_fbDb) return;
+  clearTimeout(_cloudTimer);
+  _cloudTimer = setTimeout(() => {
+    _fbDb.collection('srs').doc(_currentUser.uid)
+      .set({ data: srsData, updatedAt: Date.now() })
+      .catch(e => console.warn('[Cloud] 儲存失敗', e));
+  }, 2000);
+}
+
+function loadFromCloud(uid) {
+  if (!_fbDb) return;
+  _fbDb.collection('srs').doc(uid).get().then(doc => {
+    if (!doc.exists) return;
+    const cloud = doc.data().data;
+    if (!cloud || !cloud.words) return;
+    const local = srsLoad();
+    const merged = { ...local, words: { ...local.words } };
+    for (const [k, v] of Object.entries(cloud.words)) {
+      const loc = merged.words[k];
+      if (!loc || (v.nextReview || '') >= (loc.nextReview || '')) {
+        merged.words[k] = v;
+      }
+    }
+    localStorage.setItem(SRS_KEY, JSON.stringify(merged));
+    render();
+  }).catch(e => console.warn('[Cloud] 載入失敗', e));
+}
+
+function _renderUserChip(user) {
+  const chip = document.getElementById('userChip');
+  if (!chip) return;
+  const name = user.displayName || user.email || '已登入';
+  chip.innerHTML = `
+    <img src="${user.photoURL||''}" onerror="this.style.display='none'" alt="">
+    <span class="user-chip-name">${name.split(' ')[0]}</span>
+    <button class="user-chip-signout" onclick="doSignOut()" title="登出">✕</button>
+  `;
+  chip.style.display = 'flex';
+}
+
+function _clearUserChip() {
+  const chip = document.getElementById('userChip');
+  if (chip) { chip.innerHTML = ''; chip.style.display = 'none'; }
+}
 
 function srsRate(verb, quality) {
   // quality: 0=不知道, 1=模糊, 2=知道
@@ -6202,19 +6392,27 @@ document.getElementById("searchInput").addEventListener("input", e => { searchQu
 // ════════════════════════════════════════════
 // 發音
 // ════════════════════════════════════════════
-const LANG_CODE = { ES:"es-ES", DE:"de-DE", EN:"en-US" };
+const LANG_CODE = { ES:"es-ES", DE:"de-DE", EN:"en-AU" };
 const VOICE_PREFS = {
-  DE: ["Anna","Petra","Markus","Helena","de-DE"],
-  ES: ["Monica","Mónica","Jorge","Paulina","es-ES","es-MX","es-US"],
-  EN: ["Samantha","Daniel","Karen","Moira","en-US","en-AU","en-GB"],
+  DE: ["Anna","Petra","Markus","Helena","Yannick","Katja","de-DE","de-AT","de-CH"],
+  ES: ["Monica","Mónica","Paulina","Jorge","Jimena","Marisol","es-ES","es-MX","es-US","es-419"],
+  EN: ["Karen","Zoe","Samantha","Daniel","Moira","Veena","en-AU","en-US","en-GB"],
 };
 let _voices = [];
+let _voicesReady = false;
+
 function _loadVoices() {
   const v = window.speechSynthesis.getVoices();
-  if (v.length) _voices = v;
+  if (v.length) { _voices = v; _voicesReady = true; }
 }
+// iOS loads voices asynchronously — register event
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => _loadVoices();
+  _loadVoices();
+}
+
 function _pickVoice(lang) {
-  if (!_voices.length) _loadVoices();
+  _loadVoices();
   const code = LANG_CODE[lang] || 'es-ES';
   const base = code.split('-')[0];
   for (const pref of (VOICE_PREFS[lang]||[])) {
@@ -6224,13 +6422,9 @@ function _pickVoice(lang) {
   const byLang = _voices.filter(v => v.lang.startsWith(base));
   return byLang.find(v => /enhanced|premium|neural/i.test(v.name)) || byLang[0] || null;
 }
-function speakFromData(e) {
-  if (e && e.stopPropagation) e.stopPropagation();
-  const btn = e.currentTarget;
-  const text = btn.dataset.t;
-  const lang = btn.dataset.l;
-  if (!text || !window.speechSynthesis) return;
-  _loadVoices();
+
+function _doSpeak(text, lang, btn) {
+  const synth = window.speechSynthesis;
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang   = LANG_CODE[lang] || 'es-ES';
   utter.rate   = lang === 'DE' ? 0.82 : 0.88;
@@ -6238,10 +6432,24 @@ function speakFromData(e) {
   utter.pitch  = 1.0;
   const voice  = _pickVoice(lang);
   if (voice) utter.voice = voice;
-  btn.classList.add('speaking');
-  utter.onend = utter.onerror = () => btn.classList.remove('speaking');
-  window.speechSynthesis.cancel();
-  requestAnimationFrame(() => { try { window.speechSynthesis.speak(utter); } catch(ex) {} });
+  if (btn) {
+    btn.classList.add('speaking');
+    utter.onend = utter.onerror = () => btn.classList.remove('speaking');
+  }
+  // iOS: cancel must finish before speak; use double-RAF
+  synth.cancel();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { synth.speak(utter); } catch(ex) { console.warn('speak error', ex); }
+  }));
+}
+
+function speakFromData(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const btn = e.currentTarget;
+  const text = btn.dataset.t;
+  const lang = btn.dataset.l;
+  if (!text || !window.speechSynthesis) return;
+  _doSpeak(text, lang, btn);
 }
 function speakWord(event, text, lang) {
   if (event && event.stopPropagation) event.stopPropagation();
@@ -6259,9 +6467,10 @@ function speakWord(event, text, lang) {
     btn.classList.add('speaking');
     utter.onend = utter.onerror = () => btn.classList.remove('speaking');
   }
-  // iOS: cancel must happen before speak, both synchronous
-  try { window.speechSynthesis.cancel(); } catch(e) {}
-  try { window.speechSynthesis.speak(utter); } catch(e) {}
+  window.speechSynthesis.cancel();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    try { window.speechSynthesis.speak(utter); } catch(e) {}
+  }));
 }
 if (window.speechSynthesis) {
   _loadVoices();
@@ -6875,6 +7084,8 @@ const EXTRA_WORDS = [
 
 // 合併到 WORDS
 WORDS.push(...EXTRA_WORDS);
+
+initAuth();
 
 try {
   render();

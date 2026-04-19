@@ -555,6 +555,48 @@
 
   /* ── 時事分頁 ── */
   .news-view { padding: 16px 16px 90px; max-width: 680px; margin: 0 auto; }
+
+  /* ── 文章 / 測驗彈窗 ── */
+  #articleModal {
+    position: fixed; inset: 0; z-index: 400;
+    background: rgba(0,0,0,0.75);
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  #articleModal.open { display: flex; }
+  .am-panel {
+    background: #1a1a2e;
+    border-radius: 24px 24px 0 0;
+    width: 100%; max-width: 680px;
+    max-height: 92vh; overflow-y: auto;
+    padding: 20px 18px 40px;
+  }
+  .am-lang-badge { display:inline-block; font-size:11px; padding:3px 10px; border-radius:10px; font-weight:700; margin-bottom:8px; }
+  .am-title { font-size:19px; font-weight:700; color:#f0e8ff; margin-bottom:6px; line-height:1.3; }
+  .am-teaser { font-size:13px; color:#888; margin-bottom:14px; line-height:1.6; }
+  .am-article { font-size:14px; color:#c0c8e8; line-height:1.85; background:#121222; padding:14px; border-radius:12px; margin-bottom:16px; }
+  .am-vocab-title { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:.05em; margin:14px 0 8px; }
+  .am-vocab-list { display:flex; flex-direction:column; gap:6px; }
+  .am-vocab-row { background:#16162a; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; gap:2px; }
+  .am-vocab-word { color:#f0c070; font-weight:700; font-size:14px; }
+  .am-vocab-meaning { color:#888; font-size:12px; }
+  .am-vocab-example { color:#a0a8c8; font-size:12px; font-style:italic; }
+  .am-btn { width:100%; padding:14px; border:none; border-radius:14px; font-size:15px; font-weight:600; cursor:pointer; margin-top:14px; }
+  .am-btn-quiz { background:#3a2e5a; color:#c0a0ff; }
+  .am-btn-close { background:#2e2e4a; color:#888; }
+
+  /* ── 測驗 ── */
+  .quiz-q { background:#16162a; border-radius:12px; padding:14px; margin-bottom:12px; }
+  .quiz-sentence { font-size:14px; color:#c0c8e8; line-height:1.7; margin-bottom:10px; }
+  .quiz-blank { display:inline-block; min-width:80px; border-bottom:2px solid #f0c070; color:#f0c070; font-weight:700; padding:0 4px; }
+  .quiz-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .quiz-opt { padding:10px 8px; background:#1e1e38; border:1px solid #3a3a5a; border-radius:10px; color:#b0b0d0; font-size:13px; cursor:pointer; text-align:center; transition:background .15s; }
+  .quiz-opt:active { background:#2e2e50; }
+  .quiz-opt.selected { background:#3a2e5a; border-color:#a080f0; color:#e0c8ff; }
+  .quiz-opt.correct { background:#1a3a2a; border-color:#70c08a; color:#90f0aa; }
+  .quiz-opt.wrong  { background:#3a1a1a; border-color:#f07070; color:#ffaaaa; }
+  .quiz-result { font-size:13px; margin-top:6px; font-weight:600; }
+  .quiz-score { text-align:center; padding:20px; font-size:18px; font-weight:700; color:#f0e8ff; }
+  .quiz-score-sub { font-size:13px; color:#888; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -613,6 +655,26 @@
   <div class="wm-panel">
     <div id="wmContent"></div>
     <button class="wm-close" onclick="closeWordModal()">關閉</button>
+  </div>
+</div>
+
+<!-- 文章閱讀 & 測驗彈窗 -->
+<div id="articleModal">
+  <div class="am-panel">
+    <div id="amReadView">
+      <div id="amHeader"></div>
+      <div id="amArticleBody"></div>
+      <div class="am-vocab-title">📌 10 個重點單字</div>
+      <div class="am-vocab-list" id="amVocabList"></div>
+      <button class="am-btn am-btn-quiz" onclick="startQuiz()">✏️ 開始挖空測驗</button>
+      <button class="am-btn am-btn-close" onclick="closeArticleModal()">關閉</button>
+    </div>
+    <div id="amQuizView" style="display:none">
+      <div style="font-size:16px;font-weight:700;color:#f0e8ff;margin-bottom:4px">挖空測驗</div>
+      <div style="font-size:12px;color:#888;margin-bottom:16px" id="amQuizTitle"></div>
+      <div id="amQuizBody"></div>
+      <div id="amQuizActions"></div>
+    </div>
   </div>
 </div>
 
@@ -4855,27 +4917,135 @@ document.addEventListener('DOMContentLoaded', () => {
 // ════════════════════════════════════════════
 // 時事專欄
 // ════════════════════════════════════════════
+let _currentArticleIdx = 0;
+let _quizAnswers = [];   // user selected answers per question index
+
 function renderNewsView() {
   const container = document.getElementById('newsContainer');
-  container.innerHTML = NEWS.map(n => `
-    <div class="card news-card" style="margin-bottom:16px">
-      <div class="news-header">
+  const LANG_COLOR = {ES:'#7a5020',DE:'#204060',EN:'#205040'};
+  const LANG_LABEL = {ES:'西文',DE:'德文',EN:'英文'};
+  container.innerHTML = NEWS.map((n,i) => `
+    <div class="card news-card" style="margin-bottom:16px;cursor:pointer" onclick="showArticle(${i})">
+      <div class="news-header" style="margin-bottom:8px">
         <span class="pos-tag pos-news">${n.category}</span>
+        <span style="font-size:11px;padding:2px 8px;border-radius:8px;background:${LANG_COLOR[n.lang]||'#333'};color:#fff;font-weight:700">${LANG_LABEL[n.lang]||n.lang}</span>
         <span class="news-date">${n.date}</span>
       </div>
-      <div class="news-title">${n.title}</div>
-      <div class="news-body">${n.body}</div>
-      ${n.words && n.words.length ? `
-        <div style="margin-top:10px;font-size:11px;color:#666;margin-bottom:4px">▸ 相關單字</div>
-        <div class="news-vocab">
-          ${n.words.map(w=>`
-            <div class="news-word-chip" onclick="lookupWord('${w.word.toLowerCase()}','ALL')">
-              <span class="chip-word">${w.word}</span>
-              <span class="chip-meaning"> ${w.meaning}</span>
-            </div>`).join('')}
-        </div>` : ''}
+      <div class="news-title" style="margin-bottom:6px">${n.title}</div>
+      <div style="font-size:13px;color:#888;line-height:1.6">${n.teaser}</div>
+      <div style="margin-top:12px;text-align:right">
+        <span style="font-size:12px;color:#a080f0;font-weight:600">閱讀短文 + 測驗 →</span>
+      </div>
     </div>`).join('');
 }
+
+// ════════════════════════════════════════════
+// 文章閱讀 & 挖空測驗
+// ════════════════════════════════════════════
+const LANG_BADGE_COLOR = {ES:'#7a5020',DE:'#204060',EN:'#205040'};
+const LANG_LABEL_MAP   = {ES:'西文 ES',DE:'德文 DE',EN:'英文 EN'};
+
+function showArticle(idx) {
+  _currentArticleIdx = idx;
+  _quizAnswers = [];
+  const n = NEWS[idx];
+  document.getElementById('amReadView').style.display = '';
+  document.getElementById('amQuizView').style.display = 'none';
+  document.getElementById('amHeader').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="am-lang-badge" style="background:${LANG_BADGE_COLOR[n.lang]||'#333'};color:#fff">${LANG_LABEL_MAP[n.lang]||n.lang}</span>
+      <span class="pos-tag pos-news">${n.category}</span>
+    </div>
+    <div class="am-title">${n.title}</div>
+    <div class="am-teaser">${n.teaser}</div>`;
+  document.getElementById('amArticleBody').innerHTML =
+    `<div class="am-article">${n.article.replace(/\n/g,'<br>')}</div>`;
+  document.getElementById('amVocabList').innerHTML = n.vocab.map(v => `
+    <div class="am-vocab-row">
+      <div class="am-vocab-word">${v.word} <span style="color:#888;font-weight:400;font-size:12px">— ${v.meaning}</span></div>
+      <div class="am-vocab-example">${v.example}</div>
+    </div>`).join('');
+  document.getElementById('articleModal').classList.add('open');
+  document.querySelector('#articleModal .am-panel').scrollTop = 0;
+}
+
+function closeArticleModal() {
+  document.getElementById('articleModal').classList.remove('open');
+}
+
+function startQuiz() {
+  const n = NEWS[_currentArticleIdx];
+  _quizAnswers = new Array(n.vocab.length).fill(null);
+  document.getElementById('amReadView').style.display = 'none';
+  document.getElementById('amQuizView').style.display = '';
+  document.getElementById('amQuizTitle').textContent = n.title;
+  const words = n.vocab.map(v => v.word);
+  document.getElementById('amQuizBody').innerHTML = n.vocab.map((v, qi) => {
+    const blank = v.example.replace(new RegExp(v.word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i'), '_____');
+    // 4 options: correct + 3 random others
+    const others = words.filter((_,i) => i !== qi);
+    const distractors = others.sort(()=>Math.random()-.5).slice(0,3);
+    const opts = [v.word, ...distractors].sort(()=>Math.random()-.5);
+    return `<div class="quiz-q" id="qq${qi}">
+      <div class="quiz-sentence">${qi+1}. ${blank}</div>
+      <div class="quiz-options">
+        ${opts.map(o => `<button class="quiz-opt" onclick="selectOpt(${qi},this,'${o.replace(/'/g,"&#39;")}',${JSON.stringify(v.word)})">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-result" id="qr${qi}"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('amQuizActions').innerHTML =
+    `<button class="am-btn am-btn-quiz" onclick="submitQuiz()" style="margin-top:6px">✅ 提交答案</button>
+     <button class="am-btn am-btn-close" onclick="closeArticleModal()">關閉</button>`;
+  document.querySelector('#articleModal .am-panel').scrollTop = 0;
+}
+
+function selectOpt(qi, btn, chosen, correct) {
+  _quizAnswers[qi] = chosen;
+  const opts = btn.closest('.quiz-options').querySelectorAll('.quiz-opt');
+  opts.forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function submitQuiz() {
+  const n = NEWS[_currentArticleIdx];
+  let correct = 0;
+  n.vocab.forEach((v, qi) => {
+    const chosen = _quizAnswers[qi];
+    const opts = document.querySelectorAll(`#qq${qi} .quiz-opt`);
+    const res  = document.getElementById(`qr${qi}`);
+    if (!chosen) { res.innerHTML = '<span style="color:#888">未作答</span>'; return; }
+    const isOk = chosen.toLowerCase() === v.word.toLowerCase();
+    if (isOk) { correct++; res.innerHTML = '<span style="color:#70c08a">✓ 正確！</span>'; }
+    else { res.innerHTML = `<span style="color:#f07070">✗ 答案是：${v.word}</span>`; }
+    opts.forEach(b => {
+      if (b.textContent.trim() === v.word) b.classList.add('correct');
+      else if (b.classList.contains('selected')) b.classList.add('wrong');
+      b.disabled = true;
+    });
+  });
+  const unanswered = _quizAnswers.filter(a=>a===null).length;
+  if (unanswered > 0) { alert(`還有 ${unanswered} 題未作答！`); return; }
+  const total = n.vocab.length;
+  const pct = Math.round(correct/total*100);
+  const passed = correct >= Math.ceil(total * 0.7);
+  document.getElementById('amQuizActions').innerHTML = `
+    <div class="quiz-score">
+      ${passed ? '🎉' : '📖'} ${correct} / ${total} 答對（${pct}%）
+      <div class="quiz-score-sub">${passed
+        ? '太棒了！繼續保持，下次會更好！'
+        : '繼續加油！建議重讀文章再挑戰一次。'}</div>
+    </div>
+    ${!passed ? `<button class="am-btn am-btn-quiz" onclick="showArticle(${_currentArticleIdx})">📖 重新閱讀</button>` : ''}
+    <button class="am-btn" style="background:#2a3a2a;color:#70c08a;margin-top:6px" onclick="startQuiz()">🔄 再做一次</button>
+    <button class="am-btn am-btn-close" onclick="closeArticleModal()">關閉</button>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('articleModal').addEventListener('click', function(e){
+    if (e.target===this) closeArticleModal();
+  });
+});
 
 // ════════════════════════════════════════════
 // 渲染卡片
@@ -5091,37 +5261,60 @@ document.getElementById("searchInput").addEventListener("input", e => { searchQu
 // ════════════════════════════════════════════
 const LANG_CODE = { ES:"es-ES", DE:"de-DE", EN:"en-US" };
 const VOICE_PREFS = {
-  DE: ["Anna","Petra","Markus","de-DE-Neural","de-DE"],
-  ES: ["Monica","Jorge","Mónica","es-ES-Neural","Paulina","es-ES","es-MX"],
-  EN: ["Samantha","Daniel","en-US-Neural","en-US","en-GB"],
+  DE: ["Anna","Petra","Markus","Helena","de-DE"],
+  ES: ["Monica","Mónica","Jorge","Paulina","es-ES","es-MX","es-US"],
+  EN: ["Samantha","Daniel","Karen","Moira","en-US","en-AU","en-GB"],
 };
-let _voices=[];
-function _loadVoices() { _voices=speechSynthesis.getVoices(); }
+let _voices = [];
+function _loadVoices() {
+  const v = window.speechSynthesis.getVoices();
+  if (v.length) _voices = v;
+}
 function _pickVoice(lang) {
   if (!_voices.length) _loadVoices();
+  const code = LANG_CODE[lang] || 'es-ES';
+  const base = code.split('-')[0];
   for (const pref of (VOICE_PREFS[lang]||[])) {
-    const v = _voices.find(v=>v.name.includes(pref)||v.lang===pref||v.lang.startsWith(pref));
+    const v = _voices.find(x => x.name.includes(pref) || x.lang === pref || x.lang.startsWith(pref));
     if (v) return v;
   }
-  const base = (LANG_CODE[lang]||"es-ES").split("-")[0];
-  const all  = _voices.filter(v=>v.lang.startsWith(base));
-  return all.find(v=>/enhanced|premium|neural/i.test(v.name)) || all[0] || null;
+  const byLang = _voices.filter(v => v.lang.startsWith(base));
+  return byLang.find(v => /enhanced|premium|neural/i.test(v.name)) || byLang[0] || null;
 }
 function speakWord(event, text, lang) {
-  event.stopPropagation();
+  if (event && event.stopPropagation) event.stopPropagation();
   if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const btn = event.currentTarget;
+  _loadVoices();
+  const btn = event && event.currentTarget;
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang  = LANG_CODE[lang]||"es-ES";
-  utter.rate  = lang==="DE" ? 0.82 : 0.88;
-  utter.pitch = 1.0;
-  const voice = _pickVoice(lang); if (voice) utter.voice=voice;
-  btn.classList.add("speaking");
-  utter.onend = utter.onerror = ()=>btn.classList.remove("speaking");
-  speechSynthesis.speak(utter);
+  utter.lang   = LANG_CODE[lang] || 'es-ES';
+  utter.rate   = lang === 'DE' ? 0.82 : 0.88;
+  utter.volume = 1.0;
+  utter.pitch  = 1.0;
+  const voice = _pickVoice(lang);
+  if (voice) utter.voice = voice;
+  if (btn) {
+    btn.classList.add('speaking');
+    utter.onend = utter.onerror = () => btn.classList.remove('speaking');
+  }
+  // iOS: cancel must happen before speak, both synchronous
+  try { window.speechSynthesis.cancel(); } catch(e) {}
+  try { window.speechSynthesis.speak(utter); } catch(e) {}
 }
-if (window.speechSynthesis) { _loadVoices(); speechSynthesis.onvoiceschanged=_loadVoices; }
+if (window.speechSynthesis) {
+  _loadVoices();
+  window.speechSynthesis.onvoiceschanged = _loadVoices;
+  // iOS: pre-load voices on first touch
+  document.addEventListener('touchstart', () => {
+    _loadVoices();
+    // silent utterance to unlock audio context on iOS
+    if (!_voices.length) {
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0; u.lang = 'es-ES';
+      try { window.speechSynthesis.speak(u); window.speechSynthesis.cancel(); } catch(e) {}
+    }
+  }, { once: true });
+}
 
 // ════════════════════════════════════════════
 // PWA & 初始化
@@ -5132,60 +5325,99 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').ca
 // 新知・科技・小知識
 // ════════════════════════════════════════════
 const NEWS = [
+  // ─── 1. AI 與語言學習（西文）───
   {
-    category: "科技新知", date: "2026-04",
-    title: "AI 助理正在改變語言學習方式",
-    body: "大型語言模型（LLM）如 GPT、Claude 讓個人化學習成為現實。透過對話式練習，學習者可以在母語環境之外模擬真實語境。研究顯示，結合 SRS（間隔複習）與 AI 互動，單字保留率可提升 40%。",
-    words: [
-      {word:"aprender",meaning:"學習(ES)"},
-      {word:"lernen",meaning:"學習(DE)"},
-      {word:"el modelo",meaning:"模型(ES)"},
-      {word:"die KI",meaning:"人工智慧(DE)"},
+    category: "科技新知", date: "2026-04", lang: "ES",
+    title: "AI 助理改變語言學習方式",
+    teaser: "人工智慧真的能幫我們學會外語嗎？科技與語言學習如何結合？讀完這篇西班牙文短文，你會對學語言這件事有全新的看法。",
+    article: "Hoy en día, la inteligencia artificial está transformando la forma en que aprendemos idiomas. Antes, para practicar español, necesitabas vivir en un país hispanohablante o pagar clases con un profesor nativo. Ahora, con herramientas digitales, cualquier persona puede practicar desde casa.\n\nEstos sistemas pueden corregir errores gramaticales, explicar los tiempos verbales y ofrecer vocabulario adaptado a tu nivel. Si no entiendes la diferencia entre el pretérito indefinido y el imperfecto, puedes pedir una explicación con ejemplos concretos en cualquier momento.\n\nSin embargo, los expertos advierten que la tecnología no puede reemplazar completamente la interacción humana. Escuchar acentos regionales y conocer la cultura local son aspectos que solo se aprenden con personas reales.\n\nLa mejor estrategia es combinar los dos métodos: usar herramientas digitales para practicar vocabulario y gramática regularmente, y buscar conversaciones con hablantes nativos. Esta combinación acelerará tu progreso de manera significativa.\n\n¿Ya usas alguna herramienta digital para estudiar idiomas?",
+    vocab: [
+      { word: "aprender",     meaning: "學習",       example: "Quiero aprender español rápidamente." },
+      { word: "practicar",    meaning: "練習",       example: "Necesito practicar todos los días." },
+      { word: "el vocabulario", meaning: "單字量",   example: "Estudio vocabulario nuevo cada mañana." },
+      { word: "la gramática", meaning: "文法",       example: "La gramática española tiene muchas reglas." },
+      { word: "el nivel",     meaning: "程度、等級", example: "Mi nivel de español es básico." },
+      { word: "mejorar",      meaning: "進步、改善", example: "Quiero mejorar mi pronunciación." },
+      { word: "el hablante",  meaning: "母語者、使用者", example: "Los hablantes nativos hablan muy rápido." },
+      { word: "combinar",     meaning: "結合",       example: "Es bueno combinar estudio y práctica." },
+      { word: "el progreso",  meaning: "進步、進展", example: "Noto mi progreso cada semana." },
+      { word: "reemplazar",   meaning: "取代",       example: "La tecnología no puede reemplazar a las personas." },
     ]
   },
+  // ─── 2. 朝聖之路（西文）───
   {
-    category: "文化小知識", date: "2026-04",
+    category: "文化小知識", date: "2026-04", lang: "ES",
     title: "西班牙朝聖之路 Camino de Santiago",
-    body: "每年有超過 30 萬人走上朝聖之路。最熱門的「法國之路」從庇里牛斯山出發，全長 780 公里。完成後可領取「朝聖者證書」Compostela。沿途的庇護所稱為 albergue，蓋章本稱為 credencial。",
-    words: [
-      {word:"el peregrino",meaning:"朝聖者"},
-      {word:"el albergue",meaning:"庇護所"},
-      {word:"la mochila",meaning:"背包"},
-      {word:"el sello",meaning:"印章"},
-      {word:"caminar",meaning:"走路、行走"},
+    teaser: "每年有超過三十萬人背起背包、踏上這條古老的朝聖之路。是什麼讓人們放下一切，徒步走完八百公里？用西班牙文一起踏上這段旅程。",
+    article: "Cada año, más de trescientas mil personas de todo el mundo caminan el Camino de Santiago. Esta ruta de peregrinación lleva a la catedral de Santiago de Compostela, en Galicia, al noroeste de España.\n\nLa ruta más popular es el Camino Francés, que comienza en los Pirineos y tiene una longitud de unos ochocientos kilómetros. La mayoría de los peregrinos tardan entre treinta y cuarenta días en completarla.\n\nDurante el camino, los peregrinos llevan una credencial donde recogen sellos de iglesias y albergues. Al llegar a Santiago, pueden solicitar la Compostela, el certificado oficial de la peregrinación.\n\nLa motivación de los peregrinos es muy variada: algunos van por razones religiosas, otros buscan tiempo para reflexionar, y muchos disfrutan del paisaje y de la comunidad del camino.\n\nUna frase muy común entre los caminantes es «Buen Camino», que se dice al cruzarse con otros peregrinos.",
+    vocab: [
+      { word: "el peregrino",  meaning: "朝聖者",     example: "El peregrino lleva una mochila pesada." },
+      { word: "la ruta",       meaning: "路線",       example: "La ruta más popular tiene 800 kilómetros." },
+      { word: "caminar",       meaning: "走路",       example: "Me gusta caminar por las montañas." },
+      { word: "el sello",      meaning: "印章",       example: "Recojo un sello en cada albergue." },
+      { word: "el albergue",   meaning: "庇護所、青旅", example: "El albergue cuesta diez euros por noche." },
+      { word: "el certificado", meaning: "證書",      example: "Al final recibo un certificado oficial." },
+      { word: "la catedral",   meaning: "大教堂",     example: "La catedral de Santiago es muy famosa." },
+      { word: "la mochila",    meaning: "背包",       example: "Mi mochila pesa doce kilos." },
+      { word: "reflexionar",   meaning: "反思、思考", example: "El camino te da tiempo para reflexionar." },
+      { word: "el paisaje",    meaning: "風景",       example: "El paisaje de Galicia es muy verde." },
     ]
   },
+  // ─── 3. 拉美 vs 西班牙（西文）───
   {
-    category: "語言小知識", date: "2026-04",
+    category: "語言小知識", date: "2026-04", lang: "ES",
     title: "拉美 vs 西班牙：同字不同意",
-    body: "西班牙語在不同地區有顯著差異。「你們」在西班牙用 vosotros，在拉美用 ustedes。「手機」在西班牙叫 móvil，在墨西哥叫 celular。「公寓」在西班牙是 piso，在拉美是 departamento 或 apartamento。",
-    words: [
-      {word:"vosotros",meaning:"你們（西班牙）"},
-      {word:"ustedes",meaning:"你們（拉美）"},
-      {word:"el móvil",meaning:"手機（西班牙）"},
-      {word:"el celular",meaning:"手機（拉美）"},
+    teaser: "同樣是西班牙文，西班牙人和拉美人說的竟然大不同？手機、電腦、公寓，每個字都有兩個版本！這篇短文帶你秒懂兩地差異。",
+    article: "El español es la segunda lengua más hablada del mundo, con más de quinientos millones de hablantes. Sin embargo, el idioma no es idéntico en todos los países donde se habla.\n\nUna de las diferencias más conocidas es el pronombre «vosotros». En España se usa para dirigirse a varias personas de forma informal. En Latinoamérica esta forma no existe: se usa «ustedes» tanto en contextos formales como informales.\n\nEl vocabulario también varía mucho. En España se dice «el ordenador», pero en Latinoamérica se prefiere «la computadora». El teléfono móvil se llama «el móvil» en España, y «el celular» en México y otros países.\n\nLa pronunciación es otro factor diferenciador. En España, la «c» antes de «e» o «i» suena diferente a como se pronuncia en Latinoamérica. Esta diferencia se llama ceceo en algunas regiones y seseo en otras.\n\nA pesar de estas diferencias, los hispanohablantes de todo el mundo se entienden perfectamente.",
+    vocab: [
+      { word: "el pronombre",   meaning: "代名詞",   example: "Vosotros es un pronombre de España." },
+      { word: "informal",       meaning: "非正式的", example: "Con amigos usamos un tono informal." },
+      { word: "la diferencia",  meaning: "差異",     example: "Hay muchas diferencias entre los dialectos." },
+      { word: "formal",         meaning: "正式的",   example: "En el trabajo usamos un lenguaje formal." },
+      { word: "la región",      meaning: "地區",     example: "Cada región tiene su propio acento." },
+      { word: "el acento",      meaning: "口音",     example: "Me gusta el acento argentino." },
+      { word: "idéntico",       meaning: "完全相同的", example: "El español no es idéntico en todos los países." },
+      { word: "la pronunciación", meaning: "發音",   example: "La pronunciación cambia según la región." },
+      { word: "el dialectos",   meaning: "方言",     example: "Los dialectos del español son muy variados." },
+      { word: "el ordenador",   meaning: "電腦（西班牙）", example: "Mi ordenador nuevo es muy rápido." },
     ]
   },
+  // ─── 4. 德語名詞性別（德文）───
   {
-    category: "德語小知識", date: "2026-04",
+    category: "德語小知識", date: "2026-04", lang: "DE",
     title: "德語名詞的三種性別",
-    body: "德語名詞有陽性（der）、陰性（die）、中性（das）三種。沒有規律可循，只能死記。但有些規律可幫助記憶：所有動詞轉化的名詞（das Lernen = 學習）皆為中性；以 -ung 結尾的名詞（die Meinung = 意見）皆為陰性；以 -er 結尾的職業（der Lehrer = 老師）通常為陽性。",
-    words: [
-      {word:"der Artikel",meaning:"冠詞"},
-      {word:"die Meinung",meaning:"意見"},
-      {word:"das Wort",meaning:"單字"},
-      {word:"merken",meaning:"記住"},
+    teaser: "der、die、das——德語名詞的性別到底有沒有規律可循？還是只能死背？這篇德文短文告訴你幾個超好用的記憶訣竅。",
+    article: "Die deutsche Sprache hat drei grammatikalische Geschlechter: maskulin (der), feminin (die) und neutral (das). Für viele Lernende ist das einer der schwierigsten Aspekte der deutschen Grammatik.\n\nEs gibt keine absolute Regel für das Geschlecht eines Substantivs. Meistens muss man es auswendig lernen. Aber es gibt einige hilfreiche Hinweise.\n\nSubstantive, die aus Verben gebildet werden, sind immer neutral: das Lernen, das Essen, das Schreiben. Diese Regel ist sehr zuverlässig.\n\nSubstantive mit der Endung -ung sind fast immer feminin: die Meinung, die Wohnung, die Übung. Auch Wörter mit -heit und -keit sind feminin: die Gesundheit, die Möglichkeit.\n\nBerufsbezeichnungen auf -er sind meistens maskulin: der Lehrer, der Bäcker, der Fahrer. Die feminine Form wird durch -in gebildet: die Lehrerin.\n\nWenn man Deutsch lernt, sollte man jedes Substantiv immer zusammen mit seinem Artikel lernen. Statt nur Tisch zu lernen, lerne immer der Tisch.",
+    vocab: [
+      { word: "das Geschlecht",   meaning: "性別（語法）", example: "Das Geschlecht des Substantivs ist wichtig." },
+      { word: "die Regel",        meaning: "規則",         example: "Es gibt eine Regel für Wörter mit -ung." },
+      { word: "auswendig lernen", meaning: "背誦",         example: "Ich muss den Artikel auswendig lernen." },
+      { word: "das Substantiv",   meaning: "名詞",         example: "Jedes Substantiv hat ein Geschlecht." },
+      { word: "feminin",          meaning: "陰性",         example: "Die Wohnung ist feminin." },
+      { word: "maskulin",         meaning: "陽性",         example: "Der Lehrer ist maskulin." },
+      { word: "die Endung",       meaning: "字尾",         example: "Wörter mit der Endung -ung sind feminin." },
+      { word: "zuverlässig",      meaning: "可靠的",       example: "Diese Regel ist sehr zuverlässig." },
+      { word: "der Hinweis",      meaning: "提示、訣竅",   example: "Es gibt hilfreiche Hinweise für das Lernen." },
+      { word: "bilden",           meaning: "構成、形成",   example: "Diese Wörter werden aus Verben gebildet." },
     ]
   },
+  // ─── 5. 布里斯本生活（英文）───
   {
-    category: "澳洲資訊", date: "2026-04",
+    category: "澳洲資訊", date: "2026-04", lang: "EN",
     title: "布里斯本生活必備英文",
-    body: "在布里斯本，你會常聽到澳洲特有的表達：arvo（下午）、brekky（早餐）、servo（加油站）、bottle-o（酒類專賣店）、thongs（夾腳拖）。當地人說 No worries（沒問題）和 How ya going?（你好嗎？）幾乎是口頭禪。",
-    words: [
-      {word:"arvo",meaning:"下午（澳洲口語）"},
-      {word:"brekky",meaning:"早餐（澳洲口語）"},
-      {word:"No worries",meaning:"沒問題"},
-      {word:"How ya going?",meaning:"你好嗎？"},
+    teaser: "準備去布里斯本了嗎？當地人說的英文跟你學的不太一樣！這篇英文短文帶你認識真實的布里斯本生活，讀完馬上能用。",
+    article: "Brisbane is the capital of Queensland and one of the fastest-growing cities in Australia. With over two million residents, it is the third largest city in the country. In 2032, Brisbane will host the Olympic Games, so the city is developing rapidly.\n\nThe climate in Brisbane is warm for most of the year. Summers can be hot and humid, with temperatures reaching 35 degrees. Winters are mild and pleasant, which attracts many people from colder parts of Australia.\n\nOne thing that surprises newcomers is Australian slang. Locals often shorten words in unique ways. Afternoon becomes arvo, breakfast is brekky, and a service station is a servo. If someone says How ya going?, they simply mean How are you?\n\nThe cost of living in Brisbane is lower than in Sydney or Melbourne. Public transport includes trains, buses, and ferries. Many residents also cycle, as the city has an excellent network of paths along the river.\n\nBrisbane is a great base for exploring Queensland. The Gold Coast, with its famous beaches, is only about an hour away by train.",
+    vocab: [
+      { word: "resident",   meaning: "居民",           example: "Brisbane has over two million residents." },
+      { word: "develop",    meaning: "發展",           example: "The city is developing rapidly for the Olympics." },
+      { word: "climate",    meaning: "氣候",           example: "The climate in Brisbane is warm and sunny." },
+      { word: "humid",      meaning: "潮濕的",         example: "Summer in Brisbane can be hot and humid." },
+      { word: "attract",    meaning: "吸引",           example: "The weather attracts people from all over Australia." },
+      { word: "slang",      meaning: "俚語",           example: "Australian slang can be confusing for newcomers." },
+      { word: "shorten",    meaning: "縮短",           example: "Australians shorten many words in daily speech." },
+      { word: "transport",  meaning: "交通運輸",       example: "Public transport in Brisbane is convenient." },
+      { word: "explore",    meaning: "探索",           example: "Brisbane is a great base to explore Queensland." },
+      { word: "network",    meaning: "網絡、系統",     example: "The city has an excellent network of cycle paths." },
     ]
   },
 ];

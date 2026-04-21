@@ -400,7 +400,7 @@ function speakDE(btn) {
 
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'de-DE';
-  u.rate = 0.85;
+  u.rate = 0.75;
   u.onstart = () => { btn.classList.add('speaking'); activeSpeakBtn = btn; };
   u.onend = u.onerror = () => { btn.classList.remove('speaking'); activeSpeakBtn = null; };
   window.speechSynthesis.speak(u);
